@@ -1,0 +1,54 @@
+[submodule "refos"]
+	path = refos
+	url = git@github.com:celskeggs/refos
+[submodule "kernel"]
+	path = kernel
+	url = git@github.com:celskeggs/seL4
+[submodule "tools/common"]
+	path = tools/common
+	url = git@github.com:celskeggs/common-tool
+[submodule "tools/kbuild"]
+	path = tools/kbuild
+	url = https://github.com/seL4/kbuild-tool
+[submodule "libs/libcpio"]
+	path = libs/libcpio
+	url = https://github.com/seL4/libcpio
+[submodule "libs/libelf"]
+	path = libs/libelf
+	url = https://github.com/seL4/libelf
+[submodule "libs/libmuslc"]
+	path = libs/libmuslc
+	url = https://github.com/seL4/libmuslc
+[submodule "libs/libplatsupport"]
+	path = libs/libplatsupport
+	url = https://github.com/seL4/libplatsupport
+[submodule "libs/libsel4allocman"]
+	path = libs/libsel4allocman
+	url = https://github.com/seL4/libsel4allocman
+[submodule "libs/libsel4simple"]
+	path = libs/libsel4simple
+	url = https://github.com/seL4/libsel4simple
+[submodule "libs/libsel4simple-stable"]
+	path = libs/libsel4simple-stable
+	url = https://github.com/seL4/libsel4simple-stable
+[submodule "libs/libsel4utils"]
+	path = libs/libsel4utils
+	url = git@github.com:celskeggs/libsel4utils
+[submodule "libs/libsel4vka"]
+	path = libs/libsel4vka
+	url = git@github.com:celskeggs/libsel4vka
+[submodule "libs/libsel4vspace"]
+	path = libs/libsel4vspace
+	url = https://github.com/seL4/libsel4vspace.git
+[submodule "libs/libutils"]
+	path = libs/libutils
+	url = https://github.com/seL4/libutils.git
+[submodule "libs/libsel4muslcsys"]
+	path = libs/libsel4muslcsys
+	url = https://github.com/seL4/libsel4muslcsys.git
+[submodule "libs/libsel4platsupport"]
+	path = libs/libsel4platsupport
+	url = git@github.com:celskeggs/libsel4platsupport.git
+[submodule "libs/elfloader"]
+	path = libs/elfloader
+	url = https://github.com/seL4/elfloader-tool.git

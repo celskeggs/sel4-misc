@@ -8,6 +8,7 @@
 # @TAG(NICTA_BSD)
 #
 
--include $(wildcard apps/*/Kbuild)
--include $(wildcard libs/*/Kbuild)
+apps-y                            += custom_server
+custom_server-y                    = common libsel4
 
+custom_server: kernel_elf $(custom_server-y)

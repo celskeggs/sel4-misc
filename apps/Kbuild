@@ -8,6 +8,5 @@
 # @TAG(NICTA_BSD)
 #
 
--include $(wildcard apps/*/Kbuild)
--include $(wildcard libs/*/Kbuild)
+-include $(wildcard ${SEL4_APPS_PATH}/*/Kbuild)
 

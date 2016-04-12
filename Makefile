@@ -15,13 +15,14 @@ all: custom
 -include .config
 include tools/common/project.mk
 
-custom: custom_server common
+custom: custom_server common kernel_elf
 	@echo "[STAGE] ${IMAGE_ROOT}/custom-image"
+	cp -f ${STAGE_BASE}/kernel.elf ${IMAGE_ROOT}/kernel-image
 	cp -f ${STAGE_BASE}/bin/custom_server ${IMAGE_ROOT}/custom-image
 
 simulate-ia32:
 	qemu-system-i386 \
-		-m 512 -nographic -kernel images/kernel-ia32-pc99 \
+		-m 512 -nographic -kernel images/kernel-image \
 		-initrd images/custom-image
 
 # Help

@@ -8,32 +8,15 @@
 # @TAG(NICTA_BSD)
 #
 
-lib-dirs:=libs
+# special commands:
+#   make menuconfig
+#   make silentoldconfig
+#   make simulate-ia32
 
-all: custom
+all: common kernel_elf
 
 -include .config
 include tools/common/project.mk
 
-custom: custom_server common kernel_elf
-	@echo "[STAGE] ${IMAGE_ROOT}/custom-image"
-	cp -f ${STAGE_BASE}/kernel.elf ${IMAGE_ROOT}/kernel-image
-	cp -f ${STAGE_BASE}/bin/custom_server ${IMAGE_ROOT}/custom-image
-
 simulate-ia32:
-	qemu-system-i386 \
-		-m 512 -nographic -kernel images/kernel-image \
-		-initrd images/custom-image
-
-# Help
-.PHONY: help
-help:
-	@echo "RefOS - Reference multi-server OS on seL4."
-	@echo ""
-	@echo " make help            - Show this help test."
-	@echo " make menuconfig      - Select build configuration via menus."
-	@echo " make silentoldconfig - Update configuration with the defaults of any"
-	@echo "                        newly introduced settings."
-	@echo " make                 - Build everything with the current configuration."
-	@echo " make custom          - Build without re-generating RPC stub code."
-	@echo ""
+	qemu-system-i386 -m 512 -nographic -kernel images/kernel.elf -initrd images/custom_server

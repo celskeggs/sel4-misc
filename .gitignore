@@ -2,3 +2,5 @@ build
 images
 include
 stage
+cbuild
+.idea

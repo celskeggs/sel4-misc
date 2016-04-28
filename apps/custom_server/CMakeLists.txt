@@ -7,7 +7,9 @@ add_custom_command(
         COMMAND "${CMAKE_C_COMPILER}" -E ${CMAKE_CURRENT_SOURCE_DIR}/crt/arch-x86/crt0.S -nostdinc -o ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s ${CUSTOM_SERVER_INCLUDE}
         MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/crt/arch-x86/crt0.S)
 
-add_executable(custom_server ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s)
+add_executable(custom_server
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c ${CMAKE_CURRENT_SOURCE_DIR}/src/pc99/serial.c
+        ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s)
 target_link_libraries(custom_server sel4)
 
 install(TARGETS custom_server DESTINATION images)

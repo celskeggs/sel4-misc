@@ -1,22 +1,21 @@
-/*
- * Copyright 2014, NICTA
- *
- * This software may be distributed and modified according to the terms of
- * the BSD 2-Clause license. Note that NO WARRANTY is provided.
- * See "LICENSE_BSD2.txt" for details.
- *
- * @TAG(NICTA_BSD)
- */
-
 #include <sel4/sel4.h>
+#include "pc99/serial.h"
 
-int
-_begin(void)
-{
-    char *str = "[CEL'S STUFF] Hello, seL4 World!\n";
-    while (*str) {
-        seL4_DebugPutChar(*str++);
+void _assert_fail_static(const char *fail) {
+    debug_println(fail);
+    seL4_DebugHalt();
+    while (1) {
+        // loop forever
     }
+}
+
+int _begin(void) {
+    debug_println("Hello, seL4 World!");
+
+    serial_dev_t stdout;
+    serial_init(SERIAL_COM1, seL4_CapIOPort, &stdout);
+    serial_write(&stdout, "Hello, serial world!\n", (size_t) 21);
+
     seL4_DebugHalt();
 
     while (1) {

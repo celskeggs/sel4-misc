@@ -11,5 +11,6 @@ add_executable(custom_server
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c ${CMAKE_CURRENT_SOURCE_DIR}/src/pc99/serial.c
         ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s)
 target_link_libraries(custom_server sel4)
+target_link_libraries(custom_server -lgcc)
 
 install(TARGETS custom_server DESTINATION images)

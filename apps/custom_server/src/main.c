@@ -16,6 +16,9 @@ int _begin(void) {
     serial_init(SERIAL_COM1, seL4_CapIOPort, &stdout);
     serial_write(&stdout, "Hello, serial world!\n", (size_t) 21);
 
+    debug_printdec(-1145435098);
+    debug_printhex(0xAE871BC123CABEF0);
+
     seL4_DebugHalt();
 
     while (1) {

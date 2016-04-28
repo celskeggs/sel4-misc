@@ -6,6 +6,8 @@
 #define NULL ((void*) 0)
 #define EOF (-1)
 
+typedef seL4_Uint8 bool;
+
 typedef seL4_Uint8 uint8_t;
 typedef seL4_Uint16 uint16_t;
 typedef seL4_Uint32 uint32_t;
@@ -42,6 +44,46 @@ static inline void debug_print(const char *str) {
 static inline void debug_println(const char *str) {
     debug_print(str);
     seL4_DebugPutChar('\n');
+}
+
+static inline void debug_printdec(int64_t value) {
+    if (value == 0) {
+        debug_print("0");
+        return;
+    }
+    bool neg = (value < 0);
+    if (neg) { value = -value; }
+    char out[24];
+    int i = sizeof(out);
+    out[--i] = '\0';
+    out[--i] = '\n';
+    while (value > 0) {
+        out[--i] = (value % 10) + '0';
+        value /= 10;
+    }
+    if (neg) {
+        out[--i] = '-';
+    }
+    debug_print(out + i);
+}
+
+static inline void debug_printhex(uint64_t value) {
+    if (value == 0) {
+        debug_print("0");
+        return;
+    }
+    char out[24];
+    int i = sizeof(out);
+    out[--i] = '\0';
+    out[--i] = '\n';
+    while (value > 0) {
+        int v = (value & 0xF);
+        out[--i] = (v < 10 ? v + '0' : v - 10 + 'A');
+        value >>= 4;
+    }
+    out[--i] = 'x';
+    out[--i] = '0';
+    debug_print(out + i);
 }
 
 #define _assert_fail_tostring(x) #x

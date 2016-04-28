@@ -71,7 +71,7 @@ int serial_putchar(serial_dev_t *device, char c) {
 }
 
 ssize_t serial_write(serial_dev_t *d, const char *vdata, size_t count) {
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         if (serial_putchar(d, *vdata++) < 0) {
             return i;
         }
@@ -80,7 +80,7 @@ ssize_t serial_write(serial_dev_t *d, const char *vdata, size_t count) {
 }
 
 ssize_t serial_read(serial_dev_t *d, char *buf, size_t count) {
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         int ret = serial_getchar(d);
         if (ret == EOF) {
             return i;

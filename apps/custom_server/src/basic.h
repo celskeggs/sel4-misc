@@ -6,7 +6,9 @@
 #define NULL ((void*) 0)
 #define EOF (-1)
 
-typedef seL4_Uint8 bool;
+typedef seL4_Int8 bool;
+#define false 0
+#define true 1
 
 typedef seL4_Uint8 uint8_t;
 typedef seL4_Uint16 uint16_t;
@@ -48,7 +50,7 @@ static inline void debug_println(const char *str) {
 
 static inline void debug_printdec(int64_t value) {
     if (value == 0) {
-        debug_print("0");
+        debug_println("0");
         return;
     }
     bool neg = (value < 0);
@@ -69,7 +71,7 @@ static inline void debug_printdec(int64_t value) {
 
 static inline void debug_printhex(uint64_t value) {
     if (value == 0) {
-        debug_print("0");
+        debug_println("0");
         return;
     }
     char out[24];
@@ -89,5 +91,8 @@ static inline void debug_printhex(uint64_t value) {
 #define _assert_fail_tostring(x) #x
 #define _assert_fail(expr, file, line) _assert_fail_static(file ":" _assert_fail_tostring(line) ": assertion '" expr "' failed.")
 #define assert(expr) (expr ? ((void) 0) : _assert_fail(#expr, __FILE__, __LINE__))
+
+#define _DEBUG_INTERNAL(text, file, line) debug_println(file ":" _assert_fail_tostring(line) ": " text)
+#define DEBUG(x) (_DEBUG_INTERNAL(x, __FILE__, __LINE__))
 
 #endif //SEL4_MISC_BASIC_H

@@ -16,6 +16,7 @@ void untyped_dealloc(uint8_t size_bits, untyped_ref ref);
 seL4_Untyped untyped_ptr(untyped_ref ref);
 // allocated with cslot_ao_alloc
 seL4_CPtr untyped_retype(untyped_ref ref, int type, int offset, int size_bits);
+void untyped_detype(seL4_CPtr ptr);
 seL4_Error untyped_retype_to(untyped_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr);
 
 #endif //SEL4_MISC_UNTYPED_H

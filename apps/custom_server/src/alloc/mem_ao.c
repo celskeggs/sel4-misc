@@ -1,6 +1,6 @@
 #include "mem_ao.h"
 
-// 256 KB of static memory
+// 256 KB of static memory. TODO: find better ways than this
 static uint8_t memory[256 * 1024];
 static uint8_t *here = memory;
 

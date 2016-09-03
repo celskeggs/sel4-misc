@@ -132,6 +132,7 @@ static struct buddy_block *allocate_untyped(int size_bits) {
         childB->sibling = childA;
         childA->next = allocated_linked_lists[index];
         allocated_linked_lists[index] = childA;
+        assert(linked_lists[index] == NULL);
         childB->next = NULL; // already known to be empty
         linked_lists[index] = childB;
         return childA;
@@ -144,6 +145,7 @@ static void remove_from_allocated_list(int index, struct buddy_block *block) {
         allocated_linked_lists[index] = block->next;
     } else {
         struct buddy_block *iter = allocated_linked_lists[index];
+        assert(iter != NULL);
         while (iter->next != block) {
             assert(iter->next != NULL); // fail if the block doesn't actually exist
             iter = iter->next;
@@ -159,6 +161,7 @@ static void remove_from_linked_list(int index, struct buddy_block *block) {
         linked_lists[index] = block->next;
     } else {
         struct buddy_block *iter = linked_lists[index];
+        assert(iter != NULL);
         while (iter->next != block) {
             assert(iter->next != NULL); // fail if the block doesn't actually exist
             iter = iter->next;
@@ -251,8 +254,13 @@ seL4_CPtr untyped_retype(untyped_ref ref, int type, int offset, int size_bits) {
         return seL4_CapNull;
     }
     if (untyped_retype_one(untyped_ptr(ref), type, offset, size_bits, slot) != seL4_NoError) {
+        // todo: make sure the slot is empty before deallocating it
         cslot_ao_dealloc_last(slot);
         return seL4_CapNull;
     }
     return slot;
+}
+
+void untyped_detype(seL4_CPtr ptr) {
+    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, ptr, 32) == seL4_NoError);
 }

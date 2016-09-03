@@ -60,7 +60,7 @@ static inline void debug_printdec(int64_t value) {
     out[--i] = '\0';
     out[--i] = '\n';
     while (value > 0) {
-        out[--i] = (value % 10) + '0';
+        out[--i] = (char) ((value % 10) + '0');
         value /= 10;
     }
     if (neg) {
@@ -79,8 +79,8 @@ static inline void debug_printhex(uint64_t value) {
     out[--i] = '\0';
     out[--i] = '\n';
     while (value > 0) {
-        int v = (value & 0xF);
-        out[--i] = (v < 10 ? v + '0' : v - 10 + 'A');
+        uint32_t v = (uint32_t) (value & 0xF);
+        out[--i] = (char) (v < 10 ? v + '0' : v - 10 + 'A');
         value >>= 4;
     }
     out[--i] = 'x';
@@ -88,6 +88,7 @@ static inline void debug_printhex(uint64_t value) {
     debug_print(out + i);
 }
 
+extern void _assert_fail_static(const char *fail) __attribute__((noreturn));
 #define _assert_fail_tostring(x) #x
 #define _assert_fail(expr, file, line) _assert_fail_static(file ":" _assert_fail_tostring(line) ": assertion '" expr "' failed.")
 #define assert(expr) (expr ? ((void) 0) : _assert_fail(#expr, __FILE__, __LINE__))

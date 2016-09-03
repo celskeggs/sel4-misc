@@ -21,6 +21,7 @@ seL4_CPtr cslot_ao_alloc() {
 }
 
 void cslot_ao_dealloc_last(seL4_CPtr ptr) {
+    // TODO: empty the slot?
     assert(ptr != seL4_CapNull);
     assert(ptr >= c_low);
     assert(ptr == c_next - 1);

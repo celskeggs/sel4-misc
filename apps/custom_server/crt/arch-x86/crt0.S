@@ -21,12 +21,8 @@ _start:
     movw $IPCBUF_GDT_SELECTOR, %ax
     movw %ax, %gs
 
-    /* Setup the global "bootinfo" structure. */
-    pushl %ebx
-    call seL4_InitBootInfo
-    addl $4, %esp
-
     /* Start main. */
+    pushl %ebx
     call _begin
 _fail:
     jmp _fail

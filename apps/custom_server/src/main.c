@@ -21,8 +21,9 @@ static void print_range(const char *name, seL4_SlotRegion region) {
 }
 
 void main(void) {
-    DEX_START(dex1)
-    assert(mem_page_map((void *) 0x400000, &dex1) == seL4_NoError);
+    struct mem_page_cookie cookie;
+    assert(mem_page_map((void *) 0x400000, &cookie) == seL4_NoError);
+    //mem_page_free(&cookie);
 
     const char *source = "Hello, buffer world!";
     char *dest = (void *) 0x400000;
@@ -30,8 +31,6 @@ void main(void) {
         *dest++ = *source;
     } while (*source++);
     debug_println((void *) 0x400000);
-
-    DEX_END(dex1)
 
     serial_dev_t stdout;
     serial_init(SERIAL_COM1, seL4_CapIOPort, &stdout);

@@ -2,7 +2,6 @@
 #define SEL4_MISC_MEM_PAGE_H
 
 #include <sel4/sel4.h>
-#include "../destructor.h"
 
 #define PAGE_SIZE (1U << seL4_PageBits)
 #define PAGE_TABLE_SIZE (1U << seL4_LargePageBits)
@@ -14,7 +13,12 @@ seL4_CompileTimeAssert(PAGE_TABLE_SIZE == 4194304);
 seL4_CompileTimeAssert(PAGE_TABLE_COUNT == 896);
 seL4_CompileTimeAssert(PAGE_COUNT_PER_TABLE == 1024);
 
-void *mem_page_alloc(DEX dex);
-seL4_Error mem_page_map(void *page, DEX dex);
+struct mem_page_cookie {
+    void *unref_addr;
+    seL4_IA32_Page page;
+};
+
+void mem_page_free(struct mem_page_cookie *data);
+seL4_Error mem_page_map(void *page, struct mem_page_cookie *cookie);
 
 #endif //SEL4_MISC_MEM_PAGE_H

@@ -156,11 +156,6 @@ static seL4_CPtr object_alloc(uint8_t size_bits, int type, uint8_t size_bits_all
     return node;
 }
 
-/*void object_dealloc(uint8_t size_bits, seL4_CPtr page) {
-    untyped_detype(page);
-    // TODO untyped_dealloc(size_bits, )
-}*/
-
 seL4_CNode object_alloc_cnode(uint8_t size_bits) {
     return object_alloc(size_bits, seL4_CapTableObject, size_bits); // TODO: probably needs CTE_SIZE_BITS fewer bits in the second argument
 }
@@ -176,19 +171,3 @@ seL4_IA32_Page object_alloc_page_large() {
 seL4_IA32_PageTable object_alloc_page_table() {
     return object_alloc(seL4_PageTableBits, seL4_IA32_PageTableObject, 0);
 }
-/*
-void object_dealloc_cnode(uint8_t size_bits, seL4_CNode page) {
-    object_dealloc(size_bits, page);
-}
-
-void object_dealloc_page(seL4_IA32_Page page) {
-    object_dealloc(seL4_PageBits, page);
-}
-
-void object_dealloc_page_large(seL4_IA32_Page page) {
-    object_dealloc(seL4_LargePageBits, page);
-}
-
-void object_dealloc_page_table(seL4_IA32_Page page) {
-    object_dealloc(seL4_PageTableBits, page);
-}*/

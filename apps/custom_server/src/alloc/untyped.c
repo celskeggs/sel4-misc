@@ -41,8 +41,11 @@ static void join_untyped(seL4_Untyped inA, seL4_Untyped inB) {
 #define EXPON_MAX 32
 #define EXPON_COUNT (EXPON_MAX - EXPON_MIN + 1)
 
+#define BB_UT(bb) (bb->cbase + 0) // untyped
+#define BB_RT(bb) (bb->cbase + 1) // retyped
+
 struct buddy_block {
-    seL4_Untyped ut; // constant for each allocated struct
+    seL4_CPtr cbase; // constant for each allocated struct
     bool allocated;
     // for the tree
     struct buddy_block *parent;
@@ -59,8 +62,8 @@ static struct buddy_block *free_blocks = NULL;
 static struct buddy_block *alloc_block_struct(void) {
     if (free_blocks == NULL) {
         struct buddy_block *block = (struct buddy_block *) mem_ao_alloc(sizeof(struct buddy_block));
-        block->ut = cslot_ao_alloc();
-        if (block->ut == seL4_CapNull) {
+        block->cbase = cslot_ao_alloc_slab(2);
+        if (block->cbase == seL4_CapNull) {
             mem_ao_dealloc_last(block, sizeof(struct buddy_block));
             return NULL;
         }
@@ -118,7 +121,7 @@ static struct buddy_block *allocate_untyped(int size_bits) {
             return NULL;
         }
         assert(parent->allocated);
-        if (split_untyped(parent->ut, childA->ut, childB->ut, size_bits + 1) != seL4_NoError) {
+        if (split_untyped(BB_UT(parent), BB_UT(childA), BB_UT(childB), size_bits + 1) != seL4_NoError) {
             DEBUG("could not split untyped");
             free_block_struct(childA);
             free_block_struct(childB);
@@ -183,8 +186,8 @@ static void free_untyped(int size_bits, struct buddy_block *block) {
         return;
     }
     // now we try to join it with its sibling
-    assert(block->sibling != NULL && block->sibling->sibling == block);
-    if (block->sibling->allocated) {
+    assert(block->sibling == NULL || block->sibling->sibling == block);
+    if (block->sibling == NULL || block->sibling->allocated) {
         // cannot join, so just add us to the list
         block->next = linked_lists[index];
         linked_lists[index] = block;
@@ -193,7 +196,7 @@ static void free_untyped(int size_bits, struct buddy_block *block) {
         // ooh! we're a pair - remove sibling from linked list
         remove_from_linked_list(index, block->sibling);
         // time to join!
-        join_untyped(block->ut, block->sibling->ut); // TODO: SHOULD WE REVOKE SOMETHING HERE?
+        join_untyped(BB_UT(block), BB_UT(block->sibling)); // TODO: SHOULD WE REVOKE SOMETHING HERE?
         struct buddy_block *parent = block->parent;
         free_block_struct(block->sibling);
         free_block_struct(block);
@@ -208,7 +211,8 @@ seL4_Error untyped_add_memory(seL4_Untyped ut, int size_bits) {
     }
     assert(size_bits >= EXPON_MIN && size_bits <= EXPON_MAX);
     int index = size_bits - EXPON_MIN;
-    block->ut = ut;
+    block->cbase = cslot_ao_alloc_slab(2);
+    seL4_CNode_Copy(seL4_CapInitThreadCNode, BB_UT(block), 32, seL4_CapInitThreadCNode, ut, 32, seL4_AllRights);
     block->allocated = false;
     block->next = linked_lists[index];
     linked_lists[index] = block;
@@ -241,7 +245,7 @@ void untyped_dealloc(uint8_t size_bits, untyped_ref ref) {
 seL4_Untyped untyped_ptr(untyped_ref ref) {
     struct buddy_block *bb = ref;
     assert(bb->allocated);
-    return bb->ut;
+    return BB_UT(bb);
 }
 
 seL4_Error untyped_retype_to(untyped_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr) {
@@ -249,18 +253,18 @@ seL4_Error untyped_retype_to(untyped_ref ref, int type, int offset, int size_bit
 }
 
 seL4_CPtr untyped_retype(untyped_ref ref, int type, int offset, int size_bits) {
-    seL4_CPtr slot = cslot_ao_alloc();
-    if (slot == seL4_CapNull) {
-        return seL4_CapNull;
-    }
-    if (untyped_retype_one(untyped_ptr(ref), type, offset, size_bits, slot) != seL4_NoError) {
+    struct buddy_block *bb = ref;
+    assert(bb->allocated);
+    seL4_CPtr slot = BB_RT(bb);
+    if (untyped_retype_one(BB_UT(bb), type, offset, size_bits, slot) != seL4_NoError) {
         // todo: make sure the slot is empty before deallocating it
-        cslot_ao_dealloc_last(slot);
         return seL4_CapNull;
     }
     return slot;
 }
 
-void untyped_detype(seL4_CPtr ptr) {
-    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, ptr, 32) == seL4_NoError);
+void untyped_detype(untyped_ref ref) {
+    struct buddy_block *bb = ref;
+    assert(bb->allocated);
+    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, BB_RT(bb), 32) == seL4_NoError);
 }

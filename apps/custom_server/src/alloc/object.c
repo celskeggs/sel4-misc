@@ -2,7 +2,7 @@
 #include "cslot_ao.h"
 #include "object.h"
 #include "untyped.h"
-#include "mem_ao.h"
+#include "mem_fx.h"
 
 #define SMALL_TABLE_BITS 10
 #define SMALL_TABLE_ALLOC_BITS (SMALL_TABLE_BITS + 4) // 2^4 = 16, the size of one entry
@@ -26,7 +26,7 @@ static struct small_table *alloc_small_table() {
     if (ref == UNTYPED_NONE) {
         return NULL;
     }
-    struct small_table *tab = mem_ao_alloc(sizeof(struct small_table));
+    struct small_table *tab = mem_fx_alloc(sizeof(struct small_table));
     if (tab == NULL) {
         untyped_dealloc(SMALL_TABLE_ALLOC_BITS, ref);
         return NULL;
@@ -34,7 +34,7 @@ static struct small_table *alloc_small_table() {
     tab->ref = ref;
     tab->chunk_base = cslot_ao_alloc_slab(SMALL_TABLE_SIZE);
     if (tab->chunk_base == seL4_CapNull) {
-        mem_ao_dealloc_last(tab, sizeof(struct small_table));
+        mem_fx_free(tab, sizeof(struct small_table));
         untyped_dealloc(SMALL_TABLE_ALLOC_BITS, ref);
         return NULL;
     }

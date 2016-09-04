@@ -14,6 +14,11 @@ void *mem_ao_alloc(size_t len) {
     return NULL;
 }
 
+bool mem_ao_is_last(void *ptr, size_t len) {
+    uint8_t *hptr = ptr;
+    return hptr + len == here;
+}
+
 void mem_ao_dealloc_last(void *ptr, size_t len) {
     uint8_t *hptr = ptr;
     assert(hptr + len == here);

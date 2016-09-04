@@ -23,7 +23,7 @@ _start:
 
     /* Start main. */
     pushl %ebx
-    call _begin
+    call premain
 _fail:
     jmp _fail
 

@@ -1,54 +1,42 @@
-#include <sel4/assert.h>
 #include "mem_slab.h"
-#include "../basic.h"
-#include "mem_page.h"
 
-struct slab_line {
-    struct slab_line *next; // only valid when unallocated
-    uint8_t _padding[SLAB_SIZE - sizeof(void *)];
-};
-seL4_CompileTimeAssert(sizeof(struct slab_line) == SLAB_SIZE);
+seL4_Error mem_slab_create(struct mem_slab *slab, size_t unit_size) {
+    assert(unit_size >= MEM_SLAB_MIN_UNIT);
+    assert((unit_size & 3) == 0);
+    assert(unit_size <= MEM_SLAB_MAX_UNIT);
+    slab->unit_size = unit_size;
+    slab->remaining_start = NULL;
+    slab->remaining_end = NULL;
+    slab->linked_start = NULL;
+    return seL4_NoError;
+}
 
-struct slab_header {
-    struct slab_header *next_slab;
-    struct slab_line *free;
-    uint8_t free_count;
-    uint8_t _padding[SLAB_SIZE - sizeof(void *) * 2 - sizeof(uint8_t)];
-};
-seL4_CompileTimeAssert(sizeof(struct slab_header) == SLAB_SIZE);
-
-#define SLAB_ENT_COUNT 255
-struct slab_full {
-    struct slab_header header;
-    // NOTE: must expand 'slab_header.free_count' bitwidth if this changes.
-    struct slab_line lines[SLAB_ENT_COUNT];
-};
-seL4_CompileTimeAssert(sizeof(struct slab_full) == PAGE_SIZE);
-
-static uint64_t total_free = 0;
-static struct slab_full *first_slab = NULL;
-
-static void *slab_get_nonempty(void) {
-    if (total_free <= 0) {
-        // allocate a new one!
-        struct slab_full *new_slab = mem_page_alloc();
-        new_slab->header.next_slab = &first_slab->header;
-        new_slab->header.free = &new_slab->lines[0];
-        for (int i = 1; i < SLAB_ENT_COUNT; i++) {
-            new_slab->lines[i - 1].next = &new_slab->lines[i];
+void *mem_slab_malloc(struct mem_slab *slab, struct mem_arena_ao *allocator) {
+    if (slab->linked_start != NULL) { // first try the freelist
+        void *out = slab->linked_start;
+        slab->linked_start = slab->linked_start->next;
+        return out;
+    } else {
+        if (slab->remaining_start + slab->unit_size > slab->remaining_end) { // includes case where remaining_* == NULL
+            // we don't have enough memory left to slab anything further
+            slab->remaining_start = mem_arena_ao_allocate_page(allocator);
+            if (slab->remaining_start == NULL) {
+                return NULL;
+            }
+            slab->remaining_end = slab->remaining_start + PAGE_SIZE;
         }
-        new_slab->lines[SLAB_ENT_COUNT - 1].next = NULL;
-        first_slab = new_slab;
-        new_slab->header.free_count = SLAB_ENT_COUNT;
-        total_free += SLAB_ENT_COUNT;
+        // now slab more memory
+        // note: with slab units that are not a power of 2, it is possible for there to be extra unused space at the end
+        void *out = slab->remaining_start;
+        slab->remaining_start += slab->unit_size;
+        return out;
     }
-    WORKING HERE
 }
 
-void *slab_allocate() {
-
-}
-
-void slab_free(void *slab) {
-
+void mem_slab_free(struct mem_slab *slab, void *object) {
+    assert(object != NULL);
+    // TODO: make sure object is valid and in bounds? hmm
+    struct mem_slab_header *obj = (struct mem_slab_header *) object;
+    obj->next = slab->linked_start;
+    slab->linked_start = obj;
 }

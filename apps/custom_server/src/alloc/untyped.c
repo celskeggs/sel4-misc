@@ -1,7 +1,7 @@
 #include <sel4/sel4.h>
 #include "../basic.h"
 #include "untyped.h"
-#include "mem_ao.h"
+#include "mem_fx.h"
 #include "cslot_ao.h"
 
 static seL4_Error retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
@@ -61,10 +61,10 @@ static struct buddy_block *free_blocks = NULL;
 
 static struct buddy_block *alloc_block_struct(void) {
     if (free_blocks == NULL) {
-        struct buddy_block *block = (struct buddy_block *) mem_ao_alloc(sizeof(struct buddy_block));
+        struct buddy_block *block = (struct buddy_block *) mem_fx_alloc(sizeof(struct buddy_block));
         block->cbase = cslot_ao_alloc_slab(2);
         if (block->cbase == seL4_CapNull) {
-            mem_ao_dealloc_last(block, sizeof(struct buddy_block));
+            mem_fx_free(block, sizeof(struct buddy_block));
             return NULL;
         }
         block->allocated = false;

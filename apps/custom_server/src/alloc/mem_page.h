@@ -18,7 +18,8 @@ struct mem_page_cookie {
     seL4_IA32_Page page;
 };
 
-void mem_page_free(struct mem_page_cookie *data);
+// TODO: support larger pages and use them in mem_arena
 seL4_Error mem_page_map(void *page, struct mem_page_cookie *cookie);
+void mem_page_free(struct mem_page_cookie *data);
 
 #endif //SEL4_MISC_MEM_PAGE_H

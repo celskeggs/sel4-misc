@@ -5,6 +5,8 @@
 #include "alloc/object.h"
 #include "errno.h"
 #include "alloc/mem_page.h"
+#include "alloc/mem_vspace.h"
+#include "alloc/mem_fx.h"
 
 void _assert_fail_static(const char *fail) {
     debug_println(fail);
@@ -20,33 +22,40 @@ static void print_range(const char *name, seL4_SlotRegion region) {
     debug_printdec(region.end);
 }
 
-void main(void) {
-    struct mem_page_cookie cookie;
-    assert(mem_page_map((void *) 0x400000, &cookie) == seL4_NoError);
-    //mem_page_free(&cookie);
+size_t strlen(const char *ptr) {
+    const char *cur = ptr;
+    while (*cur) {
+        cur++;
+    }
+    return cur - ptr;
+}
 
-    const char *source = "Hello, buffer world!";
-    char *dest = (void *) 0x400000;
+void main(void) {
+    debug_println("starting...");
+    seL4_Error err = mem_fx_init();
+    debug_println(err_to_string(err));
+    const char *source = "Hello, serial world 2!\n";
+    char *buf = mem_fx_alloc(64);
+    char *dest = buf;
     do {
         *dest++ = *source;
     } while (*source++);
-    debug_println((void *) 0x400000);
-
     serial_dev_t stdout;
     serial_init(SERIAL_COM1, seL4_CapIOPort, &stdout);
-    serial_write(&stdout, "Hello, serial world!\n", (size_t) 21);
-
-    debug_printdec(-1145435098);
-    debug_printhex(0xAE871BC123CABEF0);
+    serial_write(&stdout, buf, (size_t) strlen(buf));
 }
 
-void _begin(seL4_BootInfo *bi) {
-    seL4_InitBootInfo(bi);
-    debug_println("Hello, seL4 World!");
+extern char __executable_start;
 
-    print_range("userImageFrames", bi->userImageFrames);
+void premain(seL4_BootInfo *bi) {
+    seL4_InitBootInfo(bi);
+    //debug_println("Hello, seL4 World!");
+
+    mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE);
+
+    /*print_range("userImageFrames", bi->userImageFrames);
     print_range("userImagePTs", bi->userImagePTs);
-    print_range("userImagePDs", bi->userImagePDs);
+    print_range("userImagePDs", bi->userImagePDs);*/
     cslot_ao_setup(bi->empty.start, bi->empty.end);
 
     assert(untyped_add_boot_memory(bi) == seL4_NoError);

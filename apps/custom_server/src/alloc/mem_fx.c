@@ -1,29 +1,12 @@
 #include "mem_fx.h"
-#include "mem_ao.h"
-#include "mem_fxalloc.h"
 #include "mem_fxcache.h"
+#include "mem_fxseq.h"
 
-static bool fx_initialized = false;
-static bool fx_initializing = false;
 static struct mem_fxcache fx_cache = MEM_FXCACHE_INIT;
-static struct mem_fxalloc fx_alloc;
+static struct mem_fxseq fx_seq = MEM_FXSEQ_PREINIT;
 
 seL4_Error mem_fx_init(void) {
-    if (fx_initialized) {
-        return seL4_NoError;
-    }
-    if (fx_initializing) {
-        return seL4_IllegalOperation;
-    }
-    fx_initializing = true;
-    seL4_Error err = mem_fxalloc_create(&fx_alloc);
-    fx_initializing = false;
-    assert(!fx_initialized);
-    if (err != seL4_NoError) {
-        return err;
-    }
-    fx_initialized = true;
-    return seL4_NoError;
+    return mem_fxseq_init(&fx_seq);
 }
 
 static inline size_t round_size(size_t size) {
@@ -44,10 +27,8 @@ void *mem_fx_alloc(size_t size) {
     void *out = mem_fxcache_query(&fx_cache, size);
     if (out != NULL) {
         return out;
-    } else if (fx_initialized) {
-        return mem_fxalloc_alloc(&fx_alloc, size);
     } else {
-        return mem_ao_alloc(size);
+        return mem_fxseq_alloc(&fx_seq, size);
     }
 }
 

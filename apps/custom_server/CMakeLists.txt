@@ -10,8 +10,8 @@ add_custom_command(
 add_executable(custom_server
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c ${CMAKE_CURRENT_SOURCE_DIR}/src/pc99/serial.c
         ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s
-        src/alloc/cslot_ao.c src/alloc/cslot_ao.h src/alloc/mem_ao.c src/alloc/mem_ao.h src/basic.h
-        src/alloc/untyped.c src/alloc/untyped.h src/alloc/object.c src/alloc/object.h src/alloc/mem_page.c src/alloc/mem_page.h src/errno.h src/errno.c src/alloc/mem_vspace.c src/alloc/mem_vspace.h src/alloc/mem_arena.c src/alloc/mem_arena.h src/alloc/mem_fx.c src/alloc/mem_fx.h src/alloc/mem_fxalloc.c src/alloc/mem_fxalloc.h src/alloc/mem_fxcache.c src/alloc/mem_fxcache.h)
+        src/alloc/cslot_ao.c src/alloc/cslot_ao.h src/basic.h
+        src/alloc/untyped.c src/alloc/untyped.h src/alloc/object.c src/alloc/object.h src/alloc/mem_page.c src/alloc/mem_page.h src/errno.h src/errno.c src/alloc/mem_vspace.c src/alloc/mem_vspace.h src/alloc/mem_arena.c src/alloc/mem_arena.h src/alloc/mem_fx.c src/alloc/mem_fx.h src/alloc/mem_fxalloc.c src/alloc/mem_fxalloc.h src/alloc/mem_fxcache.c src/alloc/mem_fxcache.h src/alloc/mem_fxseq.c src/alloc/mem_fxseq.h)
 target_link_libraries(custom_server sel4)
 target_link_libraries(custom_server -lgcc)
 

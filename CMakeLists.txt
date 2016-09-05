@@ -3,7 +3,7 @@ project(sel4_misc C ASM)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
 # set(CMAKE_VERBOSE_MAKEFILE on)
 
-add_definitions("-std=gnu11 -m32 -nostdinc -ffreestanding -Wall -Wextra")
+add_definitions("-std=gnu11 -m32 -nostdinc -ffreestanding -Wall -Wextra -O2")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -m32")
 
 add_subdirectory("libs")

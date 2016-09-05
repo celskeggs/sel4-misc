@@ -49,21 +49,16 @@ extern char __executable_start;
 
 void premain(seL4_BootInfo *bi) {
     seL4_InitBootInfo(bi);
-    //debug_println("Hello, seL4 World!");
-
     mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE);
-
-    /*print_range("userImageFrames", bi->userImageFrames);
+    print_range("userImageFrames", bi->userImageFrames);
     print_range("userImagePTs", bi->userImagePTs);
-    print_range("userImagePDs", bi->userImagePDs);*/
+    print_range("userImagePDs", bi->userImagePDs);
     cslot_ao_setup(bi->empty.start, bi->empty.end);
-
     assert(untyped_add_boot_memory(bi) == seL4_NoError);
 
     main();
 
     seL4_DebugHalt();
-
     while (1) {
         // do nothing
     }

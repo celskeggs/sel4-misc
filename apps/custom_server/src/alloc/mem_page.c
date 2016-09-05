@@ -1,7 +1,5 @@
 #include "../basic.h"
 #include "mem_page.h"
-#include "object.h"
-#include "untyped.h"
 
 static untyped_ref mem_page_tables[PAGE_TABLE_COUNT];
 static uint16_t mem_page_counts[PAGE_TABLE_COUNT];
@@ -72,16 +70,22 @@ static void unref_table(void *page) {
 }
 
 void mem_page_free(struct mem_page_cookie *data) {
-    seL4_CNode_Delete(seL4_CapInitThreadVSpace, data->page, 32);
+    untyped_detype(data->ref);
+    untyped_dealloc(seL4_PageBits, data->ref);
+    data->ref = NULL;
     if (data->unref_addr != NULL) {
         unref_table(data->unref_addr);
     }
 }
 
 seL4_Error mem_page_map(void *page, struct mem_page_cookie *cookie) {
-    seL4_IA32_Page pent = object_alloc_page(); // TODO: register object with DEX
+    untyped_ref ref = untyped_alloc(seL4_PageBits);
+    if (ref == UNTYPED_NONE) {
+        return seL4_NotEnoughMemory;
+    }
+    seL4_IA32_Page pent = untyped_retype(ref, seL4_IA32_4K, 0, 0);
     if (pent == seL4_CapNull) {
-        DEBUG("fail");
+        untyped_dealloc(seL4_PageBits, ref);
         return seL4_NotEnoughMemory;
     }
     seL4_Error err = (seL4_Error) seL4_IA32_Page_Map(pent, seL4_CapInitThreadVSpace, (uintptr_t) page, seL4_AllRights,
@@ -110,6 +114,6 @@ seL4_Error mem_page_map(void *page, struct mem_page_cookie *cookie) {
     }
 
     cookie->unref_addr = outside_table ? NULL : page;
-    cookie->page = pent;
+    cookie->ref = ref;
     return seL4_NoError;
 }

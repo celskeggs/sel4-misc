@@ -2,6 +2,7 @@
 #define SEL4_MISC_MEM_PAGE_H
 
 #include <sel4/sel4.h>
+#include "untyped.h"
 
 #define PAGE_SIZE (1U << seL4_PageBits)
 #define PAGE_TABLE_SIZE (1U << seL4_LargePageBits)
@@ -15,7 +16,7 @@ seL4_CompileTimeAssert(PAGE_COUNT_PER_TABLE == 1024);
 
 struct mem_page_cookie {
     void *unref_addr;
-    seL4_IA32_Page page;
+    untyped_ref ref;
 };
 
 // TODO: support larger pages and use them in mem_arena

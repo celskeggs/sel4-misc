@@ -147,13 +147,13 @@ static seL4_CPtr object_alloc(uint8_t size_bits, int type, uint8_t size_bits_all
         DEBUG("no untyped alloc");
         return seL4_CapNull;
     }
-    seL4_CNode node = untyped_retype(ref, type, 0, size_bits_alloc);
-    if (node == seL4_CapNull) {
+    seL4_CPtr ptr = untyped_retype(ref, type, 0, size_bits_alloc);
+    if (ptr == seL4_CapNull) {
         DEBUG("no retype");
         untyped_dealloc(size_bits, ref);
         return seL4_CapNull;
     }
-    return node;
+    return ptr;
 }
 
 seL4_CNode object_alloc_cnode(uint8_t size_bits) {

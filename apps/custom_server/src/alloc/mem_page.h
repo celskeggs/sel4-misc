@@ -16,7 +16,7 @@ seL4_CompileTimeAssert(PAGE_COUNT_PER_TABLE == 1024);
 
 struct mem_page_cookie {
     void *unref_addr;
-    untyped_ref ref;
+    untyped_4k_ref ref;
 };
 
 // TODO: support larger pages and use them in mem_arena

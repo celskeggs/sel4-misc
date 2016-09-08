@@ -9,7 +9,7 @@
 
 #include "../basic.h"
 
-#define MEM_FX_DECL(t,x) t x = mem_fx_alloc(sizeof(t))
+#define MEM_FX_DECL(t,x) t *x = mem_fx_alloc(sizeof(t))
 #define MEM_FX_ALLOC(x) x = mem_fx_alloc(sizeof(*x))
 #define MEM_FX_FREE(x) mem_fx_free(x, sizeof(*x))
 

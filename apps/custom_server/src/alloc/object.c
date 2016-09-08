@@ -4,8 +4,8 @@
 #include "untyped.h"
 #include "mem_fx.h"
 
-#define SMALL_TABLE_BITS 10
-#define SMALL_TABLE_ALLOC_BITS (SMALL_TABLE_BITS + 4) // 2^4 = 16, the size of one entry
+#define SMALL_TABLE_ALLOC_BITS 12
+#define SMALL_TABLE_BITS (SMALL_TABLE_ALLOC_BITS - 4) // 2^4 = 16, the size of one entry
 #define SMALL_TABLE_SIZE (BIT(SMALL_TABLE_BITS))
 #define SMALL_TABLE_BITMAP_LEN (SMALL_TABLE_SIZE / 64) // number of uint64_t values needed for the bitmap
 
@@ -14,7 +14,7 @@ struct small_table { // 16K: 1024 allocatable 16-byte chunks
     uint8_t bitmap_free_index;
     uint64_t bitmap[SMALL_TABLE_BITMAP_LEN]; // 1 if free; 0 if allocated
     seL4_CPtr chunk_base; // the first CSlot of the chunk; +1023 for last CSlot of the chunk
-    untyped_ref ref;
+    untyped_4k_ref ref;
     struct small_table *prev;
     struct small_table *next;
 };
@@ -22,20 +22,21 @@ static uint64_t total_free = 0;
 static struct small_table *cached_free = NULL; // pointer to the last-known free location in the circular linked list
 
 static struct small_table *alloc_small_table() {
-    untyped_ref ref = untyped_alloc(SMALL_TABLE_ALLOC_BITS);
-    if (ref == UNTYPED_NONE) {
+    seL4_CompileTimeAssert(SMALL_TABLE_ALLOC_BITS == BITS_4KIB);
+    untyped_4k_ref ref = untyped_allocate_4k();
+    if (ref == NULL) {
         return NULL;
     }
     struct small_table *tab = mem_fx_alloc(sizeof(struct small_table));
     if (tab == NULL) {
-        untyped_dealloc(SMALL_TABLE_ALLOC_BITS, ref);
+        untyped_free_4k(ref);
         return NULL;
     }
     tab->ref = ref;
     tab->chunk_base = cslot_ao_alloc_slab(SMALL_TABLE_SIZE);
     if (tab->chunk_base == seL4_CapNull) {
         mem_fx_free(tab, sizeof(struct small_table));
-        untyped_dealloc(SMALL_TABLE_ALLOC_BITS, ref);
+        untyped_free_4k(ref);
         return NULL;
     }
     tab->free = SMALL_TABLE_SIZE;
@@ -67,6 +68,10 @@ static struct small_table *get_nonfull_small_table() {
         assert(cached_free != orig_cached); // should never happen: there was free space, remember?
     }
     return cached_free;
+}
+
+static seL4_Error untyped_retype_to(untyped_4k_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr) {
+    return untyped_root_retype(untyped_ptr_4k(ref), type, offset, size_bits, ptr, 1);
 }
 
 static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
@@ -141,33 +146,28 @@ seL4_CPtr object_alloc_notification() {
     return small_table_alloc(seL4_NotificationObject);
 }
 
-static seL4_CPtr object_alloc(uint8_t size_bits, int type, uint8_t size_bits_alloc) {
-    untyped_ref ref = untyped_alloc(size_bits);
-    if (ref == UNTYPED_NONE) {
+static seL4_CPtr object_alloc_4k(int type, uint8_t size_bits_alloc) {
+    untyped_4k_ref ref = untyped_allocate_4k();
+    if (ref == NULL) {
         DEBUG("no untyped alloc");
         return seL4_CapNull;
     }
-    seL4_CPtr ptr = untyped_retype(ref, type, 0, size_bits_alloc);
-    if (ptr == seL4_CapNull) {
+    seL4_CPtr ptr = untyped_auxptr_4k(ref);
+    seL4_Error err = untyped_retype_to(ref, type, 0, size_bits_alloc, ptr);
+    if (err != seL4_NoError) {
         DEBUG("no retype");
-        untyped_dealloc(size_bits, ref);
+        untyped_free_4k(ref);
         return seL4_CapNull;
     }
     return ptr;
 }
 
-seL4_CNode object_alloc_cnode(uint8_t size_bits) {
-    return object_alloc(size_bits, seL4_CapTableObject, size_bits); // TODO: probably needs CTE_SIZE_BITS fewer bits in the second argument
-}
-
 seL4_IA32_Page object_alloc_page() {
-    return object_alloc(seL4_PageBits, seL4_IA32_4K, 0);
-}
-
-seL4_IA32_Page object_alloc_page_large() {
-    return object_alloc(seL4_LargePageBits, seL4_IA32_4M, 0);
+    seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB);
+    return object_alloc_4k(seL4_IA32_4K, 0);
 }
 
 seL4_IA32_PageTable object_alloc_page_table() {
-    return object_alloc(seL4_PageTableBits, seL4_IA32_PageTableObject, 0);
+    seL4_CompileTimeAssert(seL4_PageTableBits == BITS_4KIB);
+    return object_alloc_4k(seL4_IA32_PageTableObject, 0);
 }

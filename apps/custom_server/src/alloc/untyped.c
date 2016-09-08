@@ -1,224 +1,217 @@
-#include <sel4/sel4.h>
-#include "../basic.h"
 #include "untyped.h"
-#include "mem_fx.h"
+#include "../basic.h"
 #include "cslot_ao.h"
+#include "mem_fx.h"
 
-static seL4_Error retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
+// tracks two sizes:
+// 4 MIB (size of large pages)
+// 4 KIB (size of small pages, size of various miscellaneous structures)
+
+struct s_4m {
+    seL4_Untyped ut;
+    seL4_CPtr aux; // no defined use here. TODO optimize memory use
+    struct s_4m *next;
+};
+
+struct s_4k {
+    seL4_Untyped ut;
+    seL4_CPtr aux; // no defined use here. TODO optimize memory use
+    struct s_4k *next;
+};
+
+seL4_Error untyped_root_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
     assert(ut != seL4_CapNull);
     assert(slot != seL4_CapNull);
     // root only
-    return seL4_Untyped_RetypeAtOffset(ut, type, offset, size_bits, seL4_CapInitThreadCNode, 0, 0, slot, num_objects);
+    return (seL4_Error) seL4_Untyped_RetypeAtOffset(ut, type, offset, size_bits, seL4_CapInitThreadCNode, 0, 0, slot,
+                                                    num_objects);
 }
 
-seL4_Error untyped_retype_one(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot) {
-    // root only
-    return retype(ut, type, offset, size_bits, slot, 1);
-}
-
-static int split_untyped(seL4_Untyped ut, seL4_Untyped outA, seL4_Untyped outB, int size_orig) {
-    seL4_Error err = untyped_retype_one(ut, seL4_UntypedObject, 0, size_orig - 1, outA);
-    if (err == seL4_NoError) {
-        err = untyped_retype_one(ut, seL4_UntypedObject, 1 << (size_orig - 1), size_orig - 1, outB);
+static seL4_Error untyped_split(seL4_Untyped ut, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
+    // this implementation is specific to creating untypeds because of weirdness around size_bits handling in the kernel
+    while (num_objects > CONFIG_RETYPE_FAN_OUT_LIMIT) {
+        seL4_Error err = untyped_root_retype(ut, seL4_UntypedObject, offset, size_bits, slot,
+                                             CONFIG_RETYPE_FAN_OUT_LIMIT);
         if (err != seL4_NoError) {
-            assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, outA, 32) == seL4_NoError);
+            return err; // TODO: better cleanup
         }
+        num_objects -= CONFIG_RETYPE_FAN_OUT_LIMIT;
+        slot += CONFIG_RETYPE_FAN_OUT_LIMIT;
+        offset += (1U << size_bits) * CONFIG_RETYPE_FAN_OUT_LIMIT;
     }
-    return err;
+    return untyped_root_retype(ut, seL4_UntypedObject, offset, size_bits, slot, num_objects);
 }
 
-static void join_untyped(seL4_Untyped inA, seL4_Untyped inB) {
-    // all we need to do is delete the caps
-    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, inA, 32) == seL4_NoError);
-    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, inB, 32) == seL4_NoError);
-}
+#define CACHE_4K_COUNT 4 // todo: decide on this empirically
+static struct s_4m *avail_4ms = NULL;
+static struct s_4k *avail_4ks = NULL;
+static uintptr_t avail_4ks_count = 0; // reflects the length of avail_4ks
 
-// largest possible block: 2^32
-// smallest possible block: 2^10 (a kilobyte)
-// although seL4 supports smaller blocks, we aren't going to allocate them in this allocator.
+// =================== 4M CHUNKS ===================
 
-#define EXPON_MIN 10
-#define EXPON_MAX 32
-#define EXPON_COUNT (EXPON_MAX - EXPON_MIN + 1)
-
-#define BB_UT(bb) (bb->cbase + 0) // untyped
-#define BB_RT(bb) (bb->cbase + 1) // retyped
-
-struct buddy_block {
-    seL4_CPtr cbase; // constant for each allocated struct
-    bool allocated;
-    // for the tree
-    struct buddy_block *parent;
-    struct buddy_block *sibling;
-    // for the linked list
-    struct buddy_block *next;
-};
-
-// 0th index: with size bit of one
-static struct buddy_block *linked_lists[EXPON_COUNT] = {NULL, NULL, NULL, NULL};
-static struct buddy_block *allocated_linked_lists[EXPON_COUNT] = {NULL, NULL, NULL, NULL};
-static struct buddy_block *free_blocks = NULL;
-
-static struct buddy_block *alloc_block_struct(void) {
-    if (free_blocks == NULL) {
-        struct buddy_block *block = (struct buddy_block *) mem_fx_alloc(sizeof(struct buddy_block));
-        block->cbase = cslot_ao_alloc_slab(2);
-        if (block->cbase == seL4_CapNull) {
-            mem_fx_free(block, sizeof(struct buddy_block));
-            return NULL;
-        }
-        block->allocated = false;
-        return block;
-    } else {
-        struct buddy_block *out = free_blocks;
-        free_blocks = free_blocks->next;
-        return out;
-    }
-}
-
-static void free_block_struct(struct buddy_block *block) {
-    assert(block != NULL);
-    assert(!block->allocated);
-    block->parent = NULL;
-    block->sibling = NULL;
-    block->next = free_blocks;
-    free_blocks = block;
-}
-
-static void free_untyped(int size_bits, struct buddy_block *block);
-
-static struct buddy_block *allocate_untyped(int size_bits) {
-    assert(size_bits >= EXPON_MIN && size_bits <= EXPON_MAX);
-    int index = size_bits - EXPON_MIN;
-    struct buddy_block *block = linked_lists[index];
-    if (block != NULL) {
-        assert(!block->allocated);
-        block->allocated = true;
-        linked_lists[index] = block->next;
-        block->next = allocated_linked_lists[index];
-        allocated_linked_lists[index] = block;
-        return block;
-    } else if (size_bits + 1 > EXPON_MAX) {
-        DEBUG("out of memory");
-        return NULL; // out of memory
-    } else {
-        struct buddy_block *childA = alloc_block_struct();
-        if (childA == NULL) {
-            DEBUG("no struct A");
-            return NULL;
-        }
-        struct buddy_block *childB = alloc_block_struct();
-        if (childB == NULL) {
-            DEBUG("no struct B");
-            free_block_struct(childA);
-            return NULL;
-        }
-        struct buddy_block *parent = allocate_untyped(size_bits + 1);
-        if (parent == NULL) {
-            DEBUG("could not alloc larger");
-            free_block_struct(childA);
-            free_block_struct(childB);
-            return NULL;
-        }
-        assert(parent->allocated);
-        if (split_untyped(BB_UT(parent), BB_UT(childA), BB_UT(childB), size_bits + 1) != seL4_NoError) {
-            DEBUG("could not split untyped");
-            free_block_struct(childA);
-            free_block_struct(childB);
-            free_untyped(size_bits + 1, parent);
-            return NULL;
-        }
-        childA->allocated = true;
-        childB->allocated = false;
-        childA->parent = childB->parent = parent;
-        childA->sibling = childB;
-        childB->sibling = childA;
-        childA->next = allocated_linked_lists[index];
-        allocated_linked_lists[index] = childA;
-        assert(linked_lists[index] == NULL);
-        childB->next = NULL; // already known to be empty
-        linked_lists[index] = childB;
-        return childA;
-    }
-}
-
-static void remove_from_allocated_list(int index, struct buddy_block *block) {
-    assert(block->allocated);
-    if (block == allocated_linked_lists[index]) {
-        allocated_linked_lists[index] = block->next;
-    } else {
-        struct buddy_block *iter = allocated_linked_lists[index];
-        assert(iter != NULL);
-        while (iter->next != block) {
-            assert(iter->next != NULL); // fail if the block doesn't actually exist
-            iter = iter->next;
-        }
-        iter->next = block->next;
-    }
-    block->next = NULL;
-}
-
-static void remove_from_linked_list(int index, struct buddy_block *block) {
-    assert(!block->allocated);
-    if (block == linked_lists[index]) {
-        linked_lists[index] = block->next;
-    } else {
-        struct buddy_block *iter = linked_lists[index];
-        assert(iter != NULL);
-        while (iter->next != block) {
-            assert(iter->next != NULL); // fail if the block doesn't actually exist
-            iter = iter->next;
-        }
-        iter->next = block->next;
-    }
-    block->next = NULL;
-}
-
-static void free_untyped(int size_bits, struct buddy_block *block) {
-    assert(size_bits >= EXPON_MIN && size_bits <= EXPON_MAX);
-    assert(block != NULL);
-    int index = size_bits - EXPON_MIN;
-    remove_from_allocated_list(index, block);
-    block->allocated = false;
-
-    if (size_bits == EXPON_MAX) {
-        assert(block->sibling == NULL);
-        return;
-    }
-    // now we try to join it with its sibling
-    assert(block->sibling == NULL || block->sibling->sibling == block);
-    if (block->sibling == NULL || block->sibling->allocated) {
-        // cannot join, so just add us to the list
-        block->next = linked_lists[index];
-        linked_lists[index] = block;
-    } else {
-        assert(block->sibling->parent == block->parent);
-        // ooh! we're a pair - remove sibling from linked list
-        remove_from_linked_list(index, block->sibling);
-        // time to join!
-        join_untyped(BB_UT(block), BB_UT(block->sibling)); // TODO: SHOULD WE REVOKE SOMETHING HERE?
-        struct buddy_block *parent = block->parent;
-        free_block_struct(block->sibling);
-        free_block_struct(block);
-        free_untyped(size_bits + 1, parent);
-    }
-}
-
-seL4_Error untyped_add_memory(seL4_Untyped ut, int size_bits) {
-    struct buddy_block *block = alloc_block_struct();
-    if (block == NULL) {
+static seL4_Error untyped2_add_memory_4m(seL4_Untyped ut, seL4_CPtr aux) {
+    MEM_FX_DECL(struct s_4m, node);
+    if (node == NULL) {
         return seL4_NotEnoughMemory;
     }
-    assert(size_bits >= EXPON_MIN && size_bits <= EXPON_MAX);
-    int index = size_bits - EXPON_MIN;
-    block->cbase = cslot_ao_alloc_slab(2);
-    seL4_CNode_Copy(seL4_CapInitThreadCNode, BB_UT(block), 32, seL4_CapInitThreadCNode, ut, 32, seL4_AllRights);
-    block->allocated = false;
-    block->next = linked_lists[index];
-    linked_lists[index] = block;
-    block->parent = NULL;
-    block->sibling = NULL;
+    node->ut = ut;
+    node->aux = aux;
+    node->next = avail_4ms;
+    avail_4ms = node;
     return seL4_NoError;
+}
+
+untyped_4m_ref untyped_allocate_4m(void) {
+    if (avail_4ms == NULL) {
+        return NULL;
+    } else {
+        struct s_4m *found = avail_4ms;
+        avail_4ms = found->next;
+        found->next = NULL;
+        return found;
+    }
+}
+
+seL4_Untyped untyped_ptr_4m(untyped_4m_ref mem) {
+    assert(mem != NULL);
+    return ((struct s_4m *) mem)->ut;
+}
+
+seL4_CPtr untyped_auxptr_4m(untyped_4m_ref mem) {
+    assert(mem != NULL);
+    return ((struct s_4m *) mem)->aux;
+}
+
+void untyped_free_4m(untyped_4m_ref mem) {
+    struct s_4m *n = (struct s_4m *) mem;
+    assert(n != NULL && n->next == NULL);
+    n->next = avail_4ms;
+    avail_4ms = n;
+    assert(seL4_CNode_Revoke(seL4_CapInitThreadCNode, n->ut, 32) == seL4_NoError);
+    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, n->aux, 32) == seL4_NoError);
+}
+
+// =================== 4K CHUNKS ===================
+
+static seL4_Error untyped2_add_memory_4k(seL4_Untyped ut, seL4_CPtr aux) {
+    MEM_FX_DECL(struct s_4k, node);
+    if (node == NULL) {
+        return seL4_NotEnoughMemory;
+    }
+    node->ut = ut;
+    node->aux = aux;
+    node->next = avail_4ks;
+    avail_4ks = node;
+    avail_4ks_count++;
+    return seL4_NoError;
+}
+
+static bool refill_running = false;
+
+untyped_4k_ref untyped_allocate_4k(void) {
+    if (avail_4ks_count <= CACHE_4K_COUNT && !refill_running) {
+        assert((avail_4ks_count == 0) == (avail_4ks == NULL));
+        // we're running out of memory - refill from 4M pool, assuming that this isn't a recursion while we do that
+        refill_running = true;
+
+        untyped_4m_ref larger = untyped_allocate_4m(); // TODO: have some way to rejoin large blocks? maybe?
+        seL4_Untyped larger_ut = untyped_ptr_4m(larger);
+
+        uint32_t caps_needed = 1U << (BITS_4MIB - BITS_4KIB);
+        seL4_CPtr slots = cslot_ao_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_Error err = untyped_split(larger_ut, 0, BITS_4KIB, slots, caps_needed);
+        if (err != seL4_NoError) {
+            DEBUG("failed during refill. allocating remnants anyway.");
+        } else {
+            for (uint32_t i = 0; i < caps_needed; i++) {
+                // NOTE: might recurse back to this allocator!
+                err = untyped2_add_memory_4k(slots + i, slots + caps_needed + i);
+                if (err != seL4_NoError) {
+                    // note: we aren't cleaning up properly here... TODO do that.
+                    DEBUG("failed during refill. allocating remnants anyway.");
+                    break;
+                }
+            }
+        }
+        refill_running = false;
+        // go and allocate normally now
+    }
+    if (avail_4ks == NULL) {
+        assert(avail_4ks_count == 0);
+        return NULL;
+    } else {
+        assert(avail_4ks_count > 0);
+        struct s_4k *found = avail_4ks;
+        avail_4ks = found->next;
+        found->next = NULL;
+        return found;
+    }
+}
+
+seL4_Untyped untyped_ptr_4k(untyped_4k_ref mem) {
+    assert(mem != NULL);
+    return ((struct s_4k *) mem)->ut;
+}
+
+seL4_CPtr untyped_auxptr_4k(untyped_4k_ref mem) {
+    assert(mem != NULL);
+    return ((struct s_4k *) mem)->aux;
+}
+
+void untyped_free_4k(untyped_4k_ref mem) {
+    struct s_4k *n = (struct s_4k *) mem;
+    assert(n != NULL && n->next == NULL);
+    n->next = avail_4ks;
+    avail_4ks = n;
+    assert(seL4_CNode_Revoke(seL4_CapInitThreadCNode, n->ut, 32) == seL4_NoError);
+    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, n->aux, 32) == seL4_NoError);
+}
+
+// =================== MEMORY ADDITION ===================
+
+// if this fails, data structures may be corrupted. see below for reasons.
+seL4_Error untyped_add_memory(seL4_Untyped ut, int size_bits) {
+    if (size_bits > BITS_4MIB) {
+        uint32_t caps_needed = 1U << (size_bits - BITS_4MIB);
+        seL4_CPtr slots = cslot_ao_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_Error err = untyped_split(ut, 0, BITS_4MIB, slots, caps_needed);
+        if (err != seL4_NoError) {
+            return err;
+        }
+        for (uint32_t i = 0; i < caps_needed; i++) {
+            err = untyped2_add_memory_4m(slots + i, slots + caps_needed + i);
+            if (err != seL4_NoError) {
+                // note: we aren't cleaning up properly here... TODO do that.
+                // since this is part of the initialization process, it should be ""okay"" - we'll just crash the system
+                return err;
+            }
+        }
+        return seL4_NoError;
+    } else if (size_bits == BITS_4MIB) {
+        return untyped2_add_memory_4m(ut, cslot_ao_alloc());
+    } else if (size_bits > BITS_4KIB) {
+        uint32_t caps_needed = 1U << (size_bits - BITS_4KIB);
+        seL4_CPtr slots = cslot_ao_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_Error err = untyped_split(ut, 0, BITS_4KIB, slots, caps_needed);
+        if (err != seL4_NoError) {
+            return err;
+        }
+        for (uint32_t i = 0; i < caps_needed; i++) {
+            err = untyped2_add_memory_4k(slots + i, slots + caps_needed + i);
+            if (err != seL4_NoError) {
+                // note: we aren't cleaning up properly here... TODO do that.
+                // since this is part of the initialization process, it should be ""okay"" - we'll just crash the system
+                return err;
+            }
+        }
+        return seL4_NoError;
+    } else if (size_bits == BITS_4KIB) {
+        return untyped2_add_memory_4k(ut, cslot_ao_alloc());
+    } else {
+        assert(size_bits > 0 && size_bits < BITS_4KIB);
+        // note: we're wasting these, but it's not very much memory in the big scheme of things
+        return seL4_NoError;
+    }
 }
 
 seL4_Error untyped_add_boot_memory(seL4_BootInfo *info) {
@@ -230,41 +223,4 @@ seL4_Error untyped_add_boot_memory(seL4_BootInfo *info) {
         }
     }
     return seL4_NoError;
-}
-
-untyped_ref untyped_alloc(uint8_t size_bits) {
-    assert(size_bits >= EXPON_MIN && size_bits <= EXPON_MAX);
-    return allocate_untyped(size_bits);
-}
-
-void untyped_dealloc(uint8_t size_bits, untyped_ref ref) {
-    assert(size_bits >= EXPON_MIN && size_bits <= EXPON_MAX);
-    free_untyped(size_bits, ref);
-}
-
-seL4_Untyped untyped_ptr(untyped_ref ref) {
-    struct buddy_block *bb = ref;
-    assert(bb->allocated);
-    return BB_UT(bb);
-}
-
-seL4_Error untyped_retype_to(untyped_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr) {
-    return untyped_retype_one(untyped_ptr(ref), type, offset, size_bits, ptr);
-}
-
-seL4_CPtr untyped_retype(untyped_ref ref, int type, int offset, int size_bits) {
-    struct buddy_block *bb = ref;
-    assert(bb->allocated);
-    seL4_CPtr slot = BB_RT(bb);
-    if (untyped_retype_one(BB_UT(bb), type, offset, size_bits, slot) != seL4_NoError) {
-        // todo: make sure the slot is empty before deallocating it
-        return seL4_CapNull;
-    }
-    return slot;
-}
-
-void untyped_detype(untyped_ref ref) {
-    struct buddy_block *bb = ref;
-    assert(bb->allocated);
-    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, BB_RT(bb), 32) == seL4_NoError);
 }

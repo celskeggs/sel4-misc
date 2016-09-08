@@ -1,7 +1,7 @@
 #include "../basic.h"
 #include "mem_page.h"
 
-static untyped_ref mem_page_tables[PAGE_TABLE_COUNT];
+static untyped_4k_ref mem_page_tables[PAGE_TABLE_COUNT];
 static uint16_t mem_page_counts[PAGE_TABLE_COUNT];
 
 static inline uint16_t address_to_table_index(void *page_table) {
@@ -10,28 +10,33 @@ static inline uint16_t address_to_table_index(void *page_table) {
     return (uint16_t) page;
 }
 
+static seL4_Error untyped_retype_to(untyped_4k_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr) {
+    return untyped_root_retype(untyped_ptr_4k(ref), type, offset, size_bits, ptr, 1);
+}
+
 static seL4_Error map_table(void *page) {
     uint16_t tid = address_to_table_index(page);
-    assert(mem_page_tables[tid] == UNTYPED_NONE); // otherwise, someone unmapped us without permission
+    assert(mem_page_tables[tid] == NULL); // otherwise, someone unmapped us without permission
     assert(mem_page_counts[tid] == 0);
-    untyped_ref ref = untyped_alloc(seL4_PageTableBits);
-    if (ref == UNTYPED_NONE) {
+    seL4_CompileTimeAssert(seL4_PageTableBits == BITS_4KIB);
+    untyped_4k_ref ref = untyped_allocate_4k();
+    if (ref == NULL) {
         DEBUG("fail");
         return seL4_NotEnoughMemory;
     }
-    seL4_IA32_PageTable table = untyped_retype(ref, seL4_IA32_PageTableObject, 0, 0);
-    if (table == seL4_CapNull) {
-        untyped_dealloc(seL4_PageTableBits, ref);
-        DEBUG("fail");
-        return seL4_NotEnoughMemory;
-    }
-    int err = seL4_IA32_PageTable_Map(table, seL4_CapInitThreadVSpace, tid * PAGE_TABLE_SIZE,
-                                      seL4_IA32_Default_VMAttributes);
+    seL4_IA32_PageTable table = untyped_auxptr_4k(ref);
+    seL4_Error err = untyped_retype_to(ref, seL4_IA32_PageTableObject, 0, 0, table);
     if (err != seL4_NoError) {
-        untyped_detype(ref);
-        untyped_dealloc(seL4_PageTableBits, ref);
+        untyped_free_4k(ref);
         DEBUG("fail");
-        return (seL4_Error) err;
+        return err;
+    }
+    err = (seL4_Error) seL4_IA32_PageTable_Map(table, seL4_CapInitThreadVSpace, tid * PAGE_TABLE_SIZE,
+                                               seL4_IA32_Default_VMAttributes);
+    if (err != seL4_NoError) {
+        untyped_free_4k(ref);
+        DEBUG("fail");
+        return err;
     }
     mem_page_tables[tid] = ref;
     mem_page_counts[tid] = 1;
@@ -39,21 +44,20 @@ static seL4_Error map_table(void *page) {
 }
 
 static void unmap_table_tid(uint16_t tid) {
-    assert(mem_page_tables[tid] != UNTYPED_NONE);
+    assert(mem_page_tables[tid] != NULL);
     assert(mem_page_counts[tid] == 0);
-    untyped_ref table = mem_page_tables[tid];
-    mem_page_tables[tid] = UNTYPED_NONE;
-    untyped_detype(table);
-    untyped_dealloc(seL4_PageTableBits, table);
+    untyped_4k_ref table = mem_page_tables[tid];
+    mem_page_tables[tid] = NULL;
+    untyped_free_4k(table);
 }
 
 static bool ref_table(void *page) {
     uint16_t tid = address_to_table_index(page);
-    if (mem_page_tables[tid] == UNTYPED_NONE) {
+    if (mem_page_tables[tid] == NULL) {
         // must have been allocated by an outside source. don't bother.
         return true;
     } else {
-        assert(mem_page_tables[tid] != UNTYPED_NONE);
+        assert(mem_page_tables[tid] != NULL);
         assert(mem_page_counts[tid] <= PAGE_COUNT_PER_TABLE);
         mem_page_counts[tid] += 1;
         return false;
@@ -62,7 +66,7 @@ static bool ref_table(void *page) {
 
 static void unref_table(void *page) {
     uint16_t tid = address_to_table_index(page);
-    assert(mem_page_tables[tid] != UNTYPED_NONE);
+    assert(mem_page_tables[tid] != NULL);
     assert(mem_page_counts[tid] > 0);
     if (--mem_page_counts[tid] == 0) {
         unmap_table_tid(tid);
@@ -70,8 +74,7 @@ static void unref_table(void *page) {
 }
 
 void mem_page_free(struct mem_page_cookie *data) {
-    untyped_detype(data->ref);
-    untyped_dealloc(seL4_PageBits, data->ref);
+    untyped_free_4k(data->ref);
     data->ref = NULL;
     if (data->unref_addr != NULL) {
         unref_table(data->unref_addr);
@@ -79,16 +82,18 @@ void mem_page_free(struct mem_page_cookie *data) {
 }
 
 seL4_Error mem_page_map(void *page, struct mem_page_cookie *cookie) {
-    untyped_ref ref = untyped_alloc(seL4_PageBits);
-    if (ref == UNTYPED_NONE) {
+    seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB);
+    untyped_4k_ref ref = untyped_allocate_4k();
+    if (ref == NULL) {
         return seL4_NotEnoughMemory;
     }
-    seL4_IA32_Page pent = untyped_retype(ref, seL4_IA32_4K, 0, 0);
-    if (pent == seL4_CapNull) {
-        untyped_dealloc(seL4_PageBits, ref);
-        return seL4_NotEnoughMemory;
+    seL4_IA32_Page pent = untyped_auxptr_4k(ref);
+    seL4_Error err = untyped_retype_to(ref, seL4_IA32_4K, 0, 0, pent);
+    if (err != seL4_NoError) {
+        untyped_free_4k(ref);
+        return err;
     }
-    seL4_Error err = (seL4_Error) seL4_IA32_Page_Map(pent, seL4_CapInitThreadVSpace, (uintptr_t) page, seL4_AllRights,
+    err = (seL4_Error) seL4_IA32_Page_Map(pent, seL4_CapInitThreadVSpace, (uintptr_t) page, seL4_AllRights,
                                                      seL4_IA32_Default_VMAttributes);
     bool outside_table;
     if (err == seL4_NoError) {

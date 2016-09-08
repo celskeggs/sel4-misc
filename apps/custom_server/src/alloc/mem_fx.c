@@ -4,9 +4,14 @@
 
 static struct mem_fxcache fx_cache = MEM_FXCACHE_INIT;
 static struct mem_fxseq fx_seq = MEM_FXSEQ_PREINIT;
+static bool is_allocating;
 
 seL4_Error mem_fx_init(void) {
     return mem_fxseq_init(&fx_seq);
+}
+
+bool mem_fx_is_allocating(void) {
+    return is_allocating;
 }
 
 static inline size_t round_size(size_t size) {
@@ -23,13 +28,16 @@ static inline size_t round_size(size_t size) {
 }
 
 void *mem_fx_alloc(size_t size) {
+    assert(!is_allocating);
+    is_allocating = true;
     size = round_size(size);
     void *out = mem_fxcache_query(&fx_cache, size);
-    if (out != NULL) {
-        return out;
-    } else {
-        return mem_fxseq_alloc(&fx_seq, size);
+    if (out == NULL) {
+        out = mem_fxseq_alloc(&fx_seq, size);
     }
+    assert(is_allocating);
+    is_allocating = false;
+    return out;
 }
 
 void mem_fx_free(void *data, size_t size) {

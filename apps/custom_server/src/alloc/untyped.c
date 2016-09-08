@@ -50,7 +50,7 @@ static uintptr_t avail_4ks_count = 0; // reflects the length of avail_4ks
 // =================== 4M CHUNKS ===================
 
 static seL4_Error untyped2_add_memory_4m(seL4_Untyped ut, seL4_CPtr aux) {
-    MEM_FX_DECL(struct s_4m, node);
+    struct s_4m *node = mem_fx_alloc(sizeof(struct s_4m));
     if (node == NULL) {
         return seL4_NotEnoughMemory;
     }
@@ -94,7 +94,7 @@ void untyped_free_4m(untyped_4m_ref mem) {
 // =================== 4K CHUNKS ===================
 
 static seL4_Error untyped2_add_memory_4k(seL4_Untyped ut, seL4_CPtr aux) {
-    MEM_FX_DECL(struct s_4k, node);
+    struct s_4k *node = mem_fx_alloc(sizeof(struct s_4k));
     if (node == NULL) {
         return seL4_NotEnoughMemory;
     }
@@ -109,7 +109,7 @@ static seL4_Error untyped2_add_memory_4k(seL4_Untyped ut, seL4_CPtr aux) {
 static bool refill_running = false;
 
 untyped_4k_ref untyped_allocate_4k(void) {
-    if (avail_4ks_count <= CACHE_4K_COUNT && !refill_running) {
+    if (avail_4ks_count <= CACHE_4K_COUNT && !refill_running && !mem_fx_is_allocating()) {
         assert((avail_4ks_count == 0) == (avail_4ks == NULL));
         // we're running out of memory - refill from 4M pool, assuming that this isn't a recursion while we do that
         refill_running = true;

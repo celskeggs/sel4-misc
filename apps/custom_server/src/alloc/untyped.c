@@ -118,7 +118,7 @@ untyped_4k_ref untyped_allocate_4k(void) {
         seL4_Untyped larger_ut = untyped_ptr_4m(larger);
 
         uint32_t caps_needed = 1U << (BITS_4MIB - BITS_4KIB);
-        seL4_CPtr slots = cslot_ao_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
         seL4_Error err = untyped_split(larger_ut, 0, BITS_4KIB, slots, caps_needed);
         if (err != seL4_NoError) {
             DEBUG("failed during refill. allocating remnants anyway.");
@@ -173,7 +173,7 @@ void untyped_free_4k(untyped_4k_ref mem) {
 seL4_Error untyped_add_memory(seL4_Untyped ut, int size_bits) {
     if (size_bits > BITS_4MIB) {
         uint32_t caps_needed = 1U << (size_bits - BITS_4MIB);
-        seL4_CPtr slots = cslot_ao_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
         seL4_Error err = untyped_split(ut, 0, BITS_4MIB, slots, caps_needed);
         if (err != seL4_NoError) {
             return err;
@@ -188,10 +188,10 @@ seL4_Error untyped_add_memory(seL4_Untyped ut, int size_bits) {
         }
         return seL4_NoError;
     } else if (size_bits == BITS_4MIB) {
-        return untyped2_add_memory_4m(ut, cslot_ao_alloc());
+        return untyped2_add_memory_4m(ut, cslot_ao_alloc(1));
     } else if (size_bits > BITS_4KIB) {
         uint32_t caps_needed = 1U << (size_bits - BITS_4KIB);
-        seL4_CPtr slots = cslot_ao_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
         seL4_Error err = untyped_split(ut, 0, BITS_4KIB, slots, caps_needed);
         if (err != seL4_NoError) {
             return err;
@@ -206,7 +206,7 @@ seL4_Error untyped_add_memory(seL4_Untyped ut, int size_bits) {
         }
         return seL4_NoError;
     } else if (size_bits == BITS_4KIB) {
-        return untyped2_add_memory_4k(ut, cslot_ao_alloc());
+        return untyped2_add_memory_4k(ut, cslot_ao_alloc(1));
     } else {
         assert(size_bits > 0 && size_bits < BITS_4KIB);
         // note: we're wasting these, but it's not very much memory in the big scheme of things

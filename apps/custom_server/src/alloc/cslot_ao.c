@@ -12,14 +12,6 @@ void cslot_ao_setup(seL4_CPtr low, seL4_CPtr high) {
     c_next = low;
 }
 
-seL4_CPtr cslot_ao_alloc() {
-    assert(c_next != seL4_CapNull);
-    if (c_next < c_high) {
-        return c_next++;
-    }
-    return seL4_CapNull;
-}
-
 void cslot_ao_dealloc_last(seL4_CPtr ptr) {
     // TODO: empty the slot?
     assert(ptr != seL4_CapNull);
@@ -28,7 +20,7 @@ void cslot_ao_dealloc_last(seL4_CPtr ptr) {
     c_next--;
 }
 
-seL4_CPtr cslot_ao_alloc_slab(uint32_t count) {
+seL4_CPtr cslot_ao_alloc(uint32_t count) {
     assert(c_next != seL4_CapNull);
     if (c_next + count > c_next && c_next + count <= c_high) {
         seL4_CPtr out = c_next;

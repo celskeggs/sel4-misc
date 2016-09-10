@@ -71,7 +71,8 @@ static struct small_table *get_nonfull_small_table() {
 }
 
 static seL4_Error untyped_retype_to(untyped_4k_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr) {
-    return untyped_root_retype(untyped_ptr_4k(ref), type, offset, size_bits, ptr, 1);
+    assert(ptr != seL4_CapNull);
+    return cslot_retype(untyped_ptr_4k(ref), type, offset, size_bits, ptr, 1);
 }
 
 static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
@@ -118,7 +119,7 @@ static void small_table_free(seL4_CPtr ptr) {
         ref = ref->next;
         assert(ref != cached_free); // should never happen, unless it's not from us
     }
-    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, ptr, 32) == seL4_NoError); // TODO: should this be a revoke?
+    assert(cslot_delete(ptr) == seL4_NoError); // TODO: should this be a revoke?
     uint32_t offset = ptr - ref->chunk_base;
     assert(offset < SMALL_TABLE_SIZE);
     uint8_t bitmap_offset = (uint8_t) (offset >> 6);

@@ -19,18 +19,12 @@ struct s_4k {
     struct s_4k *next;
 };
 
-seL4_Error untyped_root_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
+static seL4_Error untyped_split(seL4_Untyped ut, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
     assert(ut != seL4_CapNull);
     assert(slot != seL4_CapNull);
-    // root only
-    return (seL4_Error) seL4_Untyped_RetypeAtOffset(ut, type, offset, size_bits, seL4_CapInitThreadCNode, 0, 0, slot,
-                                                    num_objects);
-}
-
-static seL4_Error untyped_split(seL4_Untyped ut, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
     // this implementation is specific to creating untypeds because of weirdness around size_bits handling in the kernel
     while (num_objects > CONFIG_RETYPE_FAN_OUT_LIMIT) {
-        seL4_Error err = untyped_root_retype(ut, seL4_UntypedObject, offset, size_bits, slot,
+        seL4_Error err = cslot_retype(ut, seL4_UntypedObject, offset, size_bits, slot,
                                              CONFIG_RETYPE_FAN_OUT_LIMIT);
         if (err != seL4_NoError) {
             return err; // TODO: better cleanup
@@ -39,7 +33,7 @@ static seL4_Error untyped_split(seL4_Untyped ut, int offset, int size_bits, seL4
         slot += CONFIG_RETYPE_FAN_OUT_LIMIT;
         offset += (1U << size_bits) * CONFIG_RETYPE_FAN_OUT_LIMIT;
     }
-    return untyped_root_retype(ut, seL4_UntypedObject, offset, size_bits, slot, num_objects);
+    return cslot_retype(ut, seL4_UntypedObject, offset, size_bits, slot, num_objects);
 }
 
 #define CACHE_4K_COUNT 4 // todo: decide on this empirically
@@ -87,8 +81,8 @@ void untyped_free_4m(untyped_4m_ref mem) {
     assert(n != NULL && n->next == NULL);
     n->next = avail_4ms;
     avail_4ms = n;
-    assert(seL4_CNode_Revoke(seL4_CapInitThreadCNode, n->ut, 32) == seL4_NoError);
-    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, n->aux, 32) == seL4_NoError);
+    assert(cslot_delete(n->aux) == seL4_NoError);
+    assert(cslot_revoke(n->ut) == seL4_NoError);
 }
 
 // =================== 4K CHUNKS ===================
@@ -163,8 +157,8 @@ void untyped_free_4k(untyped_4k_ref mem) {
     assert(n != NULL && n->next == NULL);
     n->next = avail_4ks;
     avail_4ks = n;
-    assert(seL4_CNode_Revoke(seL4_CapInitThreadCNode, n->ut, 32) == seL4_NoError);
-    assert(seL4_CNode_Delete(seL4_CapInitThreadCNode, n->aux, 32) == seL4_NoError);
+    assert(cslot_delete(n->aux) == seL4_NoError);
+    assert(cslot_revoke(n->ut) == seL4_NoError);
 }
 
 // =================== MEMORY ADDITION ===================

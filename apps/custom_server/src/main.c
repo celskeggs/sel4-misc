@@ -46,6 +46,8 @@ void main(void) {
 }
 
 extern char __executable_start;
+// referenced from mem_page.c
+seL4_CPtr current_vspace = seL4_CapInitThreadVSpace;
 
 void premain(seL4_BootInfo *bi) {
     seL4_InitBootInfo(bi);
@@ -53,7 +55,7 @@ void premain(seL4_BootInfo *bi) {
     print_range("userImageFrames", bi->userImageFrames);
     print_range("userImagePTs", bi->userImagePTs);
     print_range("userImagePDs", bi->userImagePDs);
-    cslot_ao_setup(bi->empty.start, bi->empty.end);
+    cslot_ao_setup(seL4_CapInitThreadCNode, bi->empty.start, bi->empty.end);
     assert(untyped_add_boot_memory(bi) == seL4_NoError);
 
     main();

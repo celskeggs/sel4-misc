@@ -1,5 +1,8 @@
 #include "../basic.h"
 #include "mem_page.h"
+#include "cslot_ao.h"
+
+extern seL4_CPtr current_vspace;
 
 static untyped_4k_ref mem_page_tables[PAGE_TABLE_COUNT];
 static uint16_t mem_page_counts[PAGE_TABLE_COUNT];
@@ -11,7 +14,8 @@ static inline uint16_t address_to_table_index(void *page_table) {
 }
 
 static seL4_Error untyped_retype_to(untyped_4k_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr) {
-    return untyped_root_retype(untyped_ptr_4k(ref), type, offset, size_bits, ptr, 1);
+    assert(ptr != seL4_CapNull);
+    return cslot_retype(untyped_ptr_4k(ref), type, offset, size_bits, ptr, 1);
 }
 
 static seL4_Error map_table(void *page) {
@@ -31,7 +35,7 @@ static seL4_Error map_table(void *page) {
         DEBUG("fail");
         return err;
     }
-    err = (seL4_Error) seL4_IA32_PageTable_Map(table, seL4_CapInitThreadVSpace, tid * PAGE_TABLE_SIZE,
+    err = (seL4_Error) seL4_IA32_PageTable_Map(table, current_vspace, tid * PAGE_TABLE_SIZE,
                                                seL4_IA32_Default_VMAttributes);
     if (err != seL4_NoError) {
         untyped_free_4k(ref);
@@ -93,8 +97,8 @@ seL4_Error mem_page_map(void *page, struct mem_page_cookie *cookie) {
         untyped_free_4k(ref);
         return err;
     }
-    err = (seL4_Error) seL4_IA32_Page_Map(pent, seL4_CapInitThreadVSpace, (uintptr_t) page, seL4_AllRights,
-                                                     seL4_IA32_Default_VMAttributes);
+    err = (seL4_Error) seL4_IA32_Page_Map(pent, current_vspace, (uintptr_t) page, seL4_AllRights,
+                                          seL4_IA32_Default_VMAttributes);
     bool outside_table;
     if (err == seL4_NoError) {
         outside_table = ref_table(page);
@@ -105,7 +109,7 @@ seL4_Error mem_page_map(void *page, struct mem_page_cookie *cookie) {
                 DEBUG("fail");
                 return err;
             }
-            err = (seL4_Error) seL4_IA32_Page_Map(pent, seL4_CapInitThreadVSpace, (uintptr_t) page, seL4_AllRights,
+            err = (seL4_Error) seL4_IA32_Page_Map(pent, current_vspace, (uintptr_t) page, seL4_AllRights,
                                                   seL4_IA32_Default_VMAttributes);
             if (err != seL4_NoError) {
                 DEBUG("fail");

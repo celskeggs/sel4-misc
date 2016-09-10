@@ -49,7 +49,7 @@ extern char __executable_start;
 
 void premain(seL4_BootInfo *bi) {
     seL4_InitBootInfo(bi);
-    mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE);
+    mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE, bi->ipcBuffer);
     print_range("userImageFrames", bi->userImageFrames);
     print_range("userImagePTs", bi->userImagePTs);
     print_range("userImagePDs", bi->userImagePDs);

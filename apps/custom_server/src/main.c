@@ -1,4 +1,5 @@
 #include <sel4/sel4.h>
+#include <sel4/bootinfo.h>
 #include "pc99/serial.h"
 #include "alloc/cslot_ao.h"
 #include "alloc/untyped.h"
@@ -50,8 +51,7 @@ extern char __executable_start;
 seL4_CPtr current_vspace = seL4_CapInitThreadVSpace;
 
 void premain(seL4_BootInfo *bi) {
-    seL4_InitBootInfo(bi);
-    mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE, bi->ipcBuffer);
+    mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE, bi->ipcBuffer, bi);
     print_range("userImageFrames", bi->userImageFrames);
     print_range("userImagePTs", bi->userImagePTs);
     print_range("userImagePDs", bi->userImagePDs);

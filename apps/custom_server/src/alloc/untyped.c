@@ -109,6 +109,10 @@ untyped_4k_ref untyped_allocate_4k(void) {
         refill_running = true;
 
         untyped_4m_ref larger = untyped_allocate_4m(); // TODO: have some way to rejoin large blocks? maybe?
+        if (larger == NULL) {
+            refill_running = false;
+            return NULL;
+        }
         seL4_Untyped larger_ut = untyped_ptr_4m(larger);
 
         uint32_t caps_needed = 1U << (BITS_4MIB - BITS_4KIB);

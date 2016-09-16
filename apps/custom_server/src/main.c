@@ -32,9 +32,6 @@ size_t strlen(const char *ptr) {
 }
 
 void main(void) {
-    debug_println("starting...");
-    seL4_Error err = mem_fx_init();
-    debug_println(err_to_string(err));
     const char *source = "Hello, serial world 2!\n";
     char *buf = mem_fx_alloc(64);
     char *dest = buf;
@@ -57,6 +54,14 @@ void premain(seL4_BootInfo *bi) {
     print_range("userImagePDs", bi->userImagePDs);
     cslot_ao_setup(seL4_CapInitThreadCNode, bi->empty.start, bi->empty.end);
     assert(untyped_add_boot_memory(bi) == seL4_NoError);
+
+    seL4_Error err = mem_fx_init();
+    if (err != seL4_NoError) {
+        debug_print("fixmem initialization error: ");
+        debug_print_raw(err_to_string(err));
+        debug_print_raw("\n");
+        fail("could not init");
+    }
 
     main();
 

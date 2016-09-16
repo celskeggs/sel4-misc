@@ -32,6 +32,7 @@ static inline void *memset(void *buf, int c, size_t count) {
     return buf;
 }
 
+#ifdef SEL4_DEBUG_KERNEL
 static inline void debug_print_raw(const char *str) {
     while (*str) {
         seL4_DebugPutChar(*str++);
@@ -87,6 +88,7 @@ static inline void debug_printhex(uint64_t value) {
     out[--i] = '0';
     debug_print(out + i);
 }
+#endif
 
 extern void _assert_fail_static(const char *fail) __attribute__((noreturn));
 #define _assert_fail_tostring(x) #x
@@ -95,7 +97,11 @@ extern void _assert_fail_static(const char *fail) __attribute__((noreturn));
 #define _fail_fail(mesg, file, line) _assert_fail_static(file ":" _assert_fail_tostring(line) ": " mesg)
 #define fail(mesg) (_fail_fail(mesg, __FILE__, __LINE__))
 
+#ifdef SEL4_DEBUG_KERNEL
 #define _DEBUG_INTERNAL(text, file, line) debug_println(file ":" _assert_fail_tostring(line) ": " text)
 #define DEBUG(x) (_DEBUG_INTERNAL(x, __FILE__, __LINE__))
+#else
+#define DEBUG(x)
+#endif
 
 #endif //SEL4_MISC_BASIC_H

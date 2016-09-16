@@ -10,18 +10,22 @@
 #include "alloc/mem_fx.h"
 
 void _assert_fail_static(const char *fail) {
+#ifdef SEL4_DEBUG_KERNEL
     debug_println(fail);
     seL4_DebugHalt();
+#endif
     while (1) {
         // loop forever
     }
 }
 
+#ifdef SEL4_DEBUG_KERNEL
 static void print_range(const char *name, seL4_SlotRegion region) {
     debug_println(name);
     debug_printdec(region.start);
     debug_printdec(region.end);
 }
+#endif
 
 size_t strlen(const char *ptr) {
     const char *cur = ptr;
@@ -49,23 +53,24 @@ seL4_CPtr current_vspace = seL4_CapInitThreadVSpace;
 
 void premain(seL4_BootInfo *bi) {
     mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE, bi->ipcBuffer, bi);
-    print_range("userImageFrames", bi->userImageFrames);
-    print_range("userImagePTs", bi->userImagePTs);
-    print_range("userImagePDs", bi->userImagePDs);
     cslot_ao_setup(seL4_CapInitThreadCNode, bi->empty.start, bi->empty.end);
     assert(untyped_add_boot_memory(bi) == seL4_NoError);
 
     seL4_Error err = mem_fx_init();
     if (err != seL4_NoError) {
+#ifdef SEL4_DEBUG_KERNEL
         debug_print("fixmem initialization error: ");
         debug_print_raw(err_to_string(err));
         debug_print_raw("\n");
+#endif
         fail("could not init");
     }
 
     main();
 
+#ifdef SEL4_DEBUG_KERNEL
     seL4_DebugHalt();
+#endif
     while (1) {
         // do nothing
     }

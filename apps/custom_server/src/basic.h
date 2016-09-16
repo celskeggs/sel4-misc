@@ -92,6 +92,8 @@ extern void _assert_fail_static(const char *fail) __attribute__((noreturn));
 #define _assert_fail_tostring(x) #x
 #define _assert_fail(expr, file, line) _assert_fail_static(file ":" _assert_fail_tostring(line) ": assertion '" expr "' failed.")
 #define assert(expr) (expr ? ((void) 0) : _assert_fail(#expr, __FILE__, __LINE__))
+#define _fail_fail(mesg, file, line) _assert_fail_static(file ":" _assert_fail_tostring(line) ": " mesg)
+#define fail(mesg) (_fail_fail(mesg, __FILE__, __LINE__))
 
 #define _DEBUG_INTERNAL(text, file, line) debug_println(file ":" _assert_fail_tostring(line) ": " text)
 #define DEBUG(x) (_DEBUG_INTERNAL(x, __FILE__, __LINE__))

@@ -11,9 +11,7 @@ add_executable(init
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
         ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s
         src/serial.c src/serial.h)
-target_link_libraries(init sel4)
 target_link_libraries(init bedrock)
 target_link_libraries(init resource)
-target_link_libraries(init -lgcc)
 
 install(TARGETS init DESTINATION images)

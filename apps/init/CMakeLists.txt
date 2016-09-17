@@ -1,18 +1,18 @@
 
-get_property(CUSTOM_SERVER_INCLUDE_DIRECTORIES TARGET sel4 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-string(REPLACE ";" ";-I" CUSTOM_SERVER_INCLUDE ";${CUSTOM_SERVER_INCLUDE_DIRECTORIES}")
+get_property(SERVER_INCLUDE_DIRECTORIES TARGET sel4 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+string(REPLACE ";" ";-I" SERVER_INCLUDE ";${SERVER_INCLUDE_DIRECTORIES}")
 add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s
         COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/
-        COMMAND "${CMAKE_C_COMPILER}" -E ${CMAKE_CURRENT_SOURCE_DIR}/crt/arch-x86/crt0.S -nostdinc -o ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s ${CUSTOM_SERVER_INCLUDE}
+        COMMAND "${CMAKE_C_COMPILER}" -E ${CMAKE_CURRENT_SOURCE_DIR}/crt/arch-x86/crt0.S -nostdinc -o ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s ${SERVER_INCLUDE}
         MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/crt/arch-x86/crt0.S)
 
-add_executable(custom_server
+add_executable(init
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
         ${CMAKE_CURRENT_BINARY_DIR}/crt/arch-x86/crt0.s
         src/alloc/cslot_ao.c src/alloc/cslot_ao.h src/basic.h
         src/alloc/object.c src/alloc/object.h src/alloc/mem_page.c src/alloc/mem_page.h src/errno.h src/errno.c src/alloc/mem_vspace.c src/alloc/mem_vspace.h src/alloc/mem_arena.c src/alloc/mem_arena.h src/alloc/mem_fx.c src/alloc/mem_fx.h src/alloc/mem_fxalloc.c src/alloc/mem_fxalloc.h src/alloc/mem_fxcache.c src/alloc/mem_fxcache.h src/alloc/mem_fxseq.c src/alloc/mem_fxseq.h src/alloc/untyped.c src/alloc/untyped.h src/serial.c src/serial.h)
-target_link_libraries(custom_server sel4)
-target_link_libraries(custom_server -lgcc)
+target_link_libraries(init sel4)
+target_link_libraries(init -lgcc)
 
-install(TARGETS custom_server DESTINATION images)
+install(TARGETS init DESTINATION images)

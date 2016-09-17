@@ -17,6 +17,3 @@ all: common kernel_elf
 
 -include .config
 include tools/common/project.mk
-
-simulate-ia32:
-	qemu-system-i386 -m 512 -nographic -kernel images/kernel.elf -initrd images/custom_server

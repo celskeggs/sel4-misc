@@ -9,4 +9,4 @@ make
 make install
 cd ..
 echo "Use Ctrl-A x to quit qemu"
-make simulate-ia32
+qemu-system-i386 -m 512 -nographic -kernel images/kernel.elf -initrd images/init

@@ -9,7 +9,7 @@
 #define SMALL_TABLE_SIZE (BIT(SMALL_TABLE_BITS))
 #define SMALL_TABLE_BITMAP_LEN (SMALL_TABLE_SIZE / 64) // number of uint64_t values needed for the bitmap
 
-struct small_table { // 16K: 1024 allocatable 16-byte chunks
+struct small_table { // 4K: 256 allocatable 16-byte chunks
     uint16_t free;
     uint8_t bitmap_free_index;
     uint64_t bitmap[SMALL_TABLE_BITMAP_LEN]; // 1 if free; 0 if allocated
@@ -42,7 +42,7 @@ static struct small_table *alloc_small_table() {
     tab->free = SMALL_TABLE_SIZE;
     total_free += SMALL_TABLE_SIZE;
     tab->bitmap_free_index = 0;
-    assert(sizeof(tab->bitmap) == sizeof(uint64_t) * 16);
+    assert(sizeof(tab->bitmap) == sizeof(uint64_t) * 4);
     memset(&tab->bitmap, 0xFF, sizeof(tab->bitmap));
     if (cached_free == NULL) { // no list; init it
         cached_free = tab->prev = tab->next = tab;
@@ -77,6 +77,9 @@ static seL4_Error untyped_retype_to(untyped_4k_ref ref, int type, int offset, in
 
 static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
     struct small_table *nonfull_table = get_nonfull_small_table();
+    if (nonfull_table == NULL) {
+        return seL4_CapNull;
+    }
     assert(nonfull_table->free > 0);
     // TODO: remove
     uint64_t i = ~0uLL;

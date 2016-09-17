@@ -1,10 +1,7 @@
 #include <sel4/sel4.h>
-#include <sel4/bootinfo.h>
-#include "pc99/serial.h"
+#include "serial.h"
 #include "alloc/cslot_ao.h"
 #include "alloc/untyped.h"
-#include "alloc/object.h"
-#include "errno.h"
 #include "alloc/mem_page.h"
 #include "alloc/mem_vspace.h"
 #include "alloc/mem_fx.h"
@@ -36,15 +33,19 @@ size_t strlen(const char *ptr) {
 }
 
 void main(void) {
-    const char *source = "Hello, serial world 2!\n";
+    const char *source = "Hello, serial world Nth!\n";
     char *buf = mem_fx_alloc(64);
     char *dest = buf;
     do {
         *dest++ = *source;
     } while (*source++);
-    serial_dev_t stdout;
-    serial_init(SERIAL_COM1, seL4_CapIOPort, &stdout);
-    serial_write(&stdout, buf, (size_t) strlen(buf));
+    serial_write(buf, (size_t) strlen(buf));
+    serial_wait_ready();
+    int i = 1000000000;
+    while (i-- > 0) {
+        asm("nop");
+    }
+    serial_write(buf, (size_t) strlen(buf));
 }
 
 extern char __executable_start;
@@ -55,6 +56,8 @@ void premain(seL4_BootInfo *bi) {
     mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE, bi->ipcBuffer, bi);
     cslot_ao_setup(seL4_CapInitThreadCNode, bi->empty.start, bi->empty.end);
     assert(untyped_add_boot_memory(bi) == seL4_NoError);
+
+    assert(serial_init(seL4_CapIOPort, seL4_CapIRQControl, NULL) == seL4_NoError);
 
     seL4_Error err = mem_fx_init();
     if (err != seL4_NoError) {

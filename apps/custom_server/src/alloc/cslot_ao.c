@@ -45,3 +45,7 @@ seL4_Error cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, se
     return (seL4_Error) seL4_Untyped_RetypeAtOffset(ut, type, offset, size_bits, c_root_cnode, 0, 0, slot,
                                                     num_objects);
 }
+
+seL4_Error cslot_irqget(seL4_IRQControl ctrl, int irq, seL4_CPtr slot) {
+    return (seL4_Error) seL4_IRQControl_Get(ctrl, irq, c_root_cnode, slot, 32);
+}

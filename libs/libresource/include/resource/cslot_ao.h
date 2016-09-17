@@ -12,6 +12,8 @@ void cslot_ao_dealloc_last(seL4_CPtr ptr);
 // these three are necessary because SOMEONE has to know the CSpace layout
 seL4_Error cslot_delete(seL4_CPtr ptr);
 
+seL4_Error cslot_copy(seL4_CPtr from, seL4_CPtr to);
+
 seL4_Error cslot_revoke(seL4_CPtr ptr);
 
 seL4_Error cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects);

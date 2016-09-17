@@ -37,6 +37,10 @@ seL4_Error cslot_delete(seL4_CPtr ptr) {
     return (seL4_Error) seL4_CNode_Delete(c_root_cnode, ptr, 32);
 }
 
+seL4_Error cslot_copy(seL4_CPtr from, seL4_CPtr to) {
+    return (seL4_Error) seL4_CNode_Copy(c_root_cnode, to, 32, c_root_cnode, from, 32, seL4_AllRights);
+}
+
 seL4_Error cslot_revoke(seL4_CPtr ptr) {
     return (seL4_Error) seL4_CNode_Revoke(c_root_cnode, ptr, 32);
 }

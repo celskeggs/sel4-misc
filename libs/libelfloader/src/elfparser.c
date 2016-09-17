@@ -21,7 +21,7 @@ seL4_CompileTimeAssert(sizeof(void *) == sizeof(uint32_t));
 // select just the page-base-address bits
 #define PAGE_UNMASK (~PAGE_MASK)
 
-static seL4_Error copy_via_remapper(void *source, size_t length, void *virt_target, remap_cb remapper, void *cookie,
+static seL4_Error copy_via_remapper(void *source, size_t length, void *virt_target, elfparser_remap_cb remapper, void *cookie,
                                     void *page_buffer, uint8_t access_flags) {
     if (length == 0) {
         return seL4_NoError;
@@ -48,7 +48,7 @@ static seL4_Error copy_via_remapper(void *source, size_t length, void *virt_targ
 }
 
 // TODO: this code needs VERY CLOSE SCRUTINY. it is a clear attack surface, and must be protected well.
-seL4_Error elfloader_load(void *elf, size_t file_size, remap_cb remapper, void *cookie, void *page_buffer) {
+seL4_Error elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, void *cookie, void *page_buffer) {
     uint8_t *head = (uint8_t *) elf;
     void *end = elf + file_size;
     assert(end > head);

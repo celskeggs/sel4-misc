@@ -25,10 +25,6 @@ typedef void *untyped_4m_ref;
 typedef void *untyped_4k_ref;
 
 
-// just a helper function
-seL4_Error untyped_root_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects);
-
-
 untyped_4m_ref untyped_allocate_4m(void);
 
 seL4_Untyped untyped_ptr_4m(untyped_4m_ref mem);

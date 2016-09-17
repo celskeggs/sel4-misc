@@ -21,8 +21,8 @@ _start:
     movw $IPCBUF_GDT_SELECTOR, %ax
     movw %ax, %gs
 
-    /* Start main. */
-    pushl %ebx
+    /* Start premain. */
+    pushl %ebx /* ebx primarily used for seL4_BootInfo pointer in root process */
     call premain
 _fail:
     jmp _fail

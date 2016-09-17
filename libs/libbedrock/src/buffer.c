@@ -7,3 +7,11 @@ void *memset(void *buf, int c, size_t count) {
     }
     return buf;
 }
+
+size_t strlen(const char *ptr) {
+    const char *cur = ptr;
+    while (*cur) {
+        cur++;
+    }
+    return cur - ptr;
+}

@@ -6,14 +6,6 @@
 #include <resource/mem_vspace.h>
 #include <resource/mem_fx.h>
 
-size_t strlen(const char *ptr) {
-    const char *cur = ptr;
-    while (*cur) {
-        cur++;
-    }
-    return cur - ptr;
-}
-
 void main(void) {
     const char *source = "Hello, serial world Nth!\n";
     char *buf = mem_fx_alloc(64);

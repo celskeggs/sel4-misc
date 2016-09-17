@@ -1,7 +1,6 @@
 #include "serial.h"
-#include "alloc/cslot_ao.h"
-#include "alloc/object.h"
-#include "basic.h"
+#include <resource/cslot_ao.h>
+#include <resource/object.h>
 
 // #define SERIAL_IO_PORT 0x3F8
 

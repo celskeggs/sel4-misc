@@ -1,4 +1,4 @@
-#include "mem_fxcache.h"
+#include <resource/mem_fxcache.h>
 
 static inline uint32_t get_linked_list_index_for_size(size_t size) {
     assert(FXCACHE_UNIT <= size && size <= FXCACHE_MAX);

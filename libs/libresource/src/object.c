@@ -1,8 +1,7 @@
-#include "../basic.h"
-#include "cslot_ao.h"
-#include "object.h"
-#include "untyped.h"
-#include "mem_fx.h"
+#include <resource/cslot_ao.h>
+#include <resource/object.h>
+#include <resource/untyped.h>
+#include <resource/mem_fx.h>
 
 #define SMALL_TABLE_ALLOC_BITS 12
 #define SMALL_TABLE_BITS (SMALL_TABLE_ALLOC_BITS - 4) // 2^4 = 16, the size of one entry

@@ -1,28 +1,10 @@
 #include <sel4/sel4.h>
 #include "serial.h"
-#include "alloc/cslot_ao.h"
-#include "alloc/untyped.h"
-#include "alloc/mem_page.h"
-#include "alloc/mem_vspace.h"
-#include "alloc/mem_fx.h"
-
-void _assert_fail_static(const char *fail) {
-#ifdef SEL4_DEBUG_KERNEL
-    debug_println(fail);
-    seL4_DebugHalt();
-#endif
-    while (1) {
-        // loop forever
-    }
-}
-
-#ifdef SEL4_DEBUG_KERNEL
-static void print_range(const char *name, seL4_SlotRegion region) {
-    debug_println(name);
-    debug_printdec(region.start);
-    debug_printdec(region.end);
-}
-#endif
+#include <resource/cslot_ao.h>
+#include <resource/untyped.h>
+#include <resource/mem_page.h>
+#include <resource/mem_vspace.h>
+#include <resource/mem_fx.h>
 
 size_t strlen(const char *ptr) {
     const char *cur = ptr;

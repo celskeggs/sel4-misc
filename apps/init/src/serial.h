@@ -1,7 +1,7 @@
 #ifndef SEL4_MISC_SERIAL_H
 #define SEL4_MISC_SERIAL_H
 
-#include "basic.h"
+#include <bedrock/bedrock.h>
 
 // only supports serial port COM1 for now
 #define SERIAL_IO_PORT 0x3F8

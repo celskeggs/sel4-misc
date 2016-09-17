@@ -1,4 +1,4 @@
-#include "mem_fxseq.h"
+#include <resource/mem_fxseq.h>
 
 seL4_Error mem_fxseq_init(struct mem_fxseq *fxseq) {
     seL4_Error err = mem_fxalloc_create(&fxseq->prealloc, MEM_FXSEQ_INITIAL_CHUNK * 2);

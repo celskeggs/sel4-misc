@@ -1,7 +1,6 @@
-#include "untyped.h"
-#include "../basic.h"
-#include "cslot_ao.h"
-#include "mem_fx.h"
+#include <resource/untyped.h>
+#include <resource/cslot_ao.h>
+#include <resource/mem_fx.h>
 
 // tracks two sizes:
 // 4 MIB (size of large pages)

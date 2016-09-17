@@ -1,6 +1,6 @@
-#include "mem_fx.h"
-#include "mem_fxcache.h"
-#include "mem_fxseq.h"
+#include <resource/mem_fx.h>
+#include <resource/mem_fxcache.h>
+#include <resource/mem_fxseq.h>
 
 static struct mem_fxcache fx_cache = MEM_FXCACHE_INIT;
 static struct mem_fxseq fx_seq = MEM_FXSEQ_PREINIT;

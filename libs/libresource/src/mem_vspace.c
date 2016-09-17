@@ -1,5 +1,5 @@
-#include "mem_vspace.h"
-#include "mem_page.h"
+#include <resource/mem_vspace.h>
+#include <resource/mem_page.h>
 
 // this will be our standard starting offset for allocating pages - directly after the first page table.
 #define VSPACE_BEGIN_PTR ((void *) PAGE_TABLE_SIZE)

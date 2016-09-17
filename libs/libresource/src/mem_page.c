@@ -1,6 +1,5 @@
-#include "../basic.h"
-#include "mem_page.h"
-#include "cslot_ao.h"
+#include <resource/mem_page.h>
+#include <resource/cslot_ao.h>
 
 extern seL4_CPtr current_vspace;
 

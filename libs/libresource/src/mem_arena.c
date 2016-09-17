@@ -1,4 +1,4 @@
-#include "mem_arena.h"
+#include <resource/mem_arena.h>
 
 seL4_Error mem_arena_allocate(struct mem_arena *arena, size_t approximate_size) {
     size_t real_size = mem_vspace_alloc_slice(&arena->space, approximate_size);

@@ -1,4 +1,4 @@
-#include "mem_fxalloc.h"
+#include <resource/mem_fxalloc.h>
 
 seL4_Error mem_fxalloc_create(struct mem_fxalloc *fxalloc, size_t size_hint) {
     struct mem_fxalloc_page_node *page_node = &fxalloc->page_root;

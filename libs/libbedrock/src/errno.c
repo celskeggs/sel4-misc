@@ -1,5 +1,5 @@
 #include <sel4/assert.h>
-#include "errno.h"
+#include <bedrock/errno.h>
 
 static const char *error_strings[] = {
     "NoError",

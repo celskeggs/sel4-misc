@@ -1,4 +1,4 @@
-#include "cslot_ao.h"
+#include <resource/cslot_ao.h>
 
 // high is after the allocatable range
 static seL4_CNode c_root_cnode;

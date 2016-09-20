@@ -11,7 +11,7 @@ add_custom_command(
 set(LIB_BEDROCK_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_library(bedrock STATIC ${LIB_BEDROCK_HEADERS}
-        src/errno.c src/assert.c src/buffer.c src/debug.c ${CMAKE_CURRENT_BINARY_DIR}/src/arch-x86/_start.s)
+        src/errx.c src/assert.c src/buffer.c src/debug.c ${CMAKE_CURRENT_BINARY_DIR}/src/arch-x86/_start.s)
 target_include_directories(bedrock PUBLIC ${LIB_BEDROCK_HEADERS})
 target_link_libraries(bedrock sel4)
 target_link_libraries(bedrock -lgcc)

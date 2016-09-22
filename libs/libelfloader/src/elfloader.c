@@ -1,5 +1,5 @@
-#include <elfloader.h>
-#include <elfparser.h>
+#include <elfloader/elfloader.h>
+#include <elfloader/elfparser.h>
 #include <resource/mem_vspace.h>
 #include <resource/mem_fx.h>
 #include <resource/cslot_ao.h>

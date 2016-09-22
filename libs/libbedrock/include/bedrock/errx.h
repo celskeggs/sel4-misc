@@ -9,6 +9,7 @@
 
 // description_len includes the null terminator
 typedef void (*errx_type)(uint64_t extra, char *description_out, size_t description_len);
+
 typedef void ERRX_VOID;
 
 extern struct errx_status {
@@ -17,15 +18,19 @@ extern struct errx_status {
 } errx;
 
 enum errx_generics {
-    GERR_NONE=0,
+    GERR_NONE = 0,
     GERR_MEMORY_POOL_EXHAUSTED,
     GERR_INVALID_STATE,
     GERR_DATA_SPILLED,
     GERR_INVALID_MAGIC,
     GERR_UNSUPPORTED_OPTION,
     GERR_MALFORMED_DATA,
+    GERR_REQUEST_TOO_LARGE,
+    GERR_OUT_OF_RANGE,
 };
-#define _ERRX_GENERIC_STRINGS { "OK", "Memory Pool Exhausted", "Invalid State for Operation", "Data Spilled and Lost", "Invalid Magic Number", "Unsupported Option", "Malformed Data" }
+#define _ERRX_GENERIC_STRINGS { "OK", "Memory Pool Exhausted", "Invalid State for Operation", "Data Spilled and Lost", \
+                                "Invalid Magic Number", "Unsupported Option", "Malformed Data", "Request Too Large", \
+                                "Parameter Out of Range" }
 
 extern void errx_type_none(uint64_t, char *, size_t);
 

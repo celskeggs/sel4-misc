@@ -3,7 +3,7 @@
 set(LIB_RESOURCE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_library(resource STATIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/cslot_ao.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/cslot.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mem_arena.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mem_fx.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mem_fxalloc.c

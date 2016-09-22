@@ -1,4 +1,4 @@
-#include <resource/cslot_ao.h>
+#include <resource/cslot.h>
 #include <resource/object.h>
 #include <resource/untyped.h>
 #include <resource/mem_fx.h>
@@ -32,7 +32,7 @@ static struct small_table *alloc_small_table() {
         return NULL;
     }
     tab->ref = ref;
-    tab->chunk_base = cslot_ao_alloc(SMALL_TABLE_SIZE);
+    tab->chunk_base = cslot_alloc_slab(SMALL_TABLE_SIZE);
     if (tab->chunk_base == seL4_CapNull) {
         mem_fx_free(tab, sizeof(struct small_table));
         untyped_free_4k(ref);

@@ -22,7 +22,7 @@ seL4_CompileTimeAssert(sizeof(void *) == sizeof(uint32_t));
 #define PAGE_UNMASK (~PAGE_MASK)
 
 static bool copy_via_remapper(void *source, size_t length, void *virt_target, elfparser_remap_cb remapper, void *cookie,
-                                    void *page_buffer, uint8_t access_flags) {
+                              void *page_buffer, uint8_t access_flags) {
     if (length == 0) {
         return true;
     }
@@ -49,7 +49,7 @@ static bool copy_via_remapper(void *source, size_t length, void *virt_target, el
 // TODO: this code needs VERY CLOSE SCRUTINY. it is a clear attack surface, and must be protected well.
 bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, void *cookie, void *page_buffer) {
     uint8_t *head = (uint8_t *) elf;
-    void *end = elf + file_size;
+    uint8_t *end = elf + file_size;
     assert(end > head);
 #define H16(n) (*(uint16_t *) (head + n))
 #define H32(n) (*(uint32_t *) (head + n))
@@ -65,22 +65,23 @@ bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, vo
         ERRX_RAISE_GENERIC(GERR_UNSUPPORTED_OPTION);
         return false;
     }
-    uintptr_t entry_position = H32(24);
-    void *table_pointer = elf + H32(28);
-    if (table_pointer <= elf || table_pointer > end) {
+    uintptr_t entry_position = H32(24); // TODO: return this in some way
+    uint8_t *table_pointer = elf + H32(28);
+    if (table_pointer <= head || table_pointer > end) {
         ERRX_RAISE_GENERIC(GERR_MALFORMED_DATA);
         return false;
     }
     uint16_t entry_size = H16(42);
     uint16_t entry_count = H16(44);
-    void *table_end = table_pointer + entry_size * (uint32_t) entry_count;
-    if (table_end <= table_pointer || entry_size < MIN_PHDR_SIZE || table_end > end) { // detect overflow conditions; detect overread conditions
+    uint8_t *table_end = table_pointer + entry_size * (uint32_t) entry_count;
+    if (table_end <= table_pointer || entry_size < MIN_PHDR_SIZE || table_end > end) {
+        // detect overflow conditions; detect overread conditions
         ERRX_RAISE_GENERIC(GERR_MALFORMED_DATA);
         return false;
     }
     for (uint16_t i = 0; i < entry_count; i++) {
         uint32_t *entry_addr = (uint32_t *) ((entry_size * i) + table_pointer);
-        assert(entry_addr >= elf && entry_addr <= end - MIN_PHDR_SIZE); // crash instead of reading too much
+        assert((uint8_t *) entry_addr >= head && (uint8_t *) entry_addr <= end - MIN_PHDR_SIZE); // avoid overreading
         uint32_t phdr_type = entry_addr[0], file_offset = entry_addr[1], virtual_address = entry_addr[2];
         uint32_t stored_size = entry_addr[4], memory_size = entry_addr[5], flags = entry_addr[6];
         // TODO: should we look at alignment?
@@ -91,11 +92,12 @@ bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, vo
             if (memory_size > stored_size) {
                 stored_size = memory_size;
             }
-            void *read_source = file_offset + elf;
-            void *read_end = read_source + stored_size;
+            uint8_t *read_source = file_offset + elf;
+            uint8_t *read_end = read_source + stored_size;
             assert(read_end > read_source);
-            assert(read_source >= elf && read_end <= end);
-            if (!copy_via_remapper(read_source, stored_size, (void *) virtual_address, remapper, cookie, page_buffer, (uint8_t) (flags & ELF_MEM_FLAGS))) {
+            assert(read_source >= head && read_end <= end);
+            if (!copy_via_remapper(read_source, stored_size, (void *) virtual_address, remapper, cookie, page_buffer,
+                                   (uint8_t) (flags & ELF_MEM_FLAGS))) {
                 return false;
             }
         }

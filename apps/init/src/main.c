@@ -1,6 +1,6 @@
 #include <sel4/sel4.h>
 #include "serial.h"
-#include <resource/cslot_ao.h>
+#include <resource/cslot.h>
 #include <resource/untyped.h>
 #include <resource/mem_page.h>
 #include <resource/mem_vspace.h>
@@ -35,13 +35,20 @@ void premain(seL4_BootInfo *bi) {
     ERRX_START;
 
     mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE, bi->ipcBuffer, bi);
-    cslot_ao_setup(seL4_CapInitThreadCNode, bi->empty.start, bi->empty.end);
-    assert(untyped_add_boot_memory(bi));
+    if (!cslot_setup(seL4_CapInitThreadCNode, bi->empty.start, bi->empty.end)) {
+        ERRX_DISPLAY(fail);
+    }
 
-    assert(serial_init(seL4_CapIOPort, seL4_CapIRQControl, NULL));
+    if (!untyped_add_boot_memory(bi)) {
+        ERRX_DISPLAY(fail);
+    }
+
+    if (!serial_init(seL4_CapIOPort, seL4_CapIRQControl, NULL)) {
+        ERRX_DISPLAY(fail);
+    }
 
     if (!mem_fx_init()) {
-        ERRX_DISPLAY(fail)
+        ERRX_DISPLAY(fail);
     }
 
     ERRX_START;

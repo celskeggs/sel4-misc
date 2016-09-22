@@ -2,7 +2,7 @@
 #include <elfloader/elfparser.h>
 #include <resource/mem_vspace.h>
 #include <resource/mem_fx.h>
-#include <resource/cslot_ao.h>
+#include <resource/cslot.h>
 
 #define PAGE_ACCESS_UNINIT 0xFF
 
@@ -43,7 +43,7 @@ static struct pagetable *get_pagetable(struct pd_param *pdp, void *virtual_addre
         ERRX_RAISE_SEL4(err);
         return NULL;
     }
-    for (int i = 0; i < PAGE_COUNT_PER_TABLE; i++) {
+    for (uint32_t i = 0; i < PAGE_COUNT_PER_TABLE; i++) {
         pt->pages[i] = NULL;
         pt->page_accesses[i] = PAGE_ACCESS_UNINIT;
     }
@@ -121,7 +121,7 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     }
     pdir->pd = page_dir;
     struct pd_param param = {.pagedir = pdir, .target_addr = buffer, .active_cptr = spare_cptr, .is_cptr_active = false};
-    for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
+    for (uint32_t i = 0; i < PAGE_TABLE_COUNT; i++) {
         pdir->pts[i] = NULL;
     }
     bool success = elfparser_load(elf, file_size, remapper, &param, buffer);
@@ -131,10 +131,10 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     cslot_delete(spare_cptr);
     mem_vspace_dealloc_slice(&zone);
     if (!success) {
-        for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
+        for (uint32_t i = 0; i < PAGE_TABLE_COUNT; i++) {
             struct pagetable *pt = param.pagedir->pts[i];
             if (pt != NULL) {
-                for (int j = 0; j < PAGE_COUNT_PER_TABLE; j++) {
+                for (uint32_t j = 0; j < PAGE_COUNT_PER_TABLE; j++) {
                     if (pt->pages[j] != NULL) {
                         untyped_free_4k(pt->pages[j]);
                         pt->pages[j] = NULL;

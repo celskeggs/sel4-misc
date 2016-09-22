@@ -4,11 +4,13 @@
 #include <bedrock/bedrock.h>
 #include <bedrock/errx.h> // this module uses errx
 
-void cslot_ao_setup(seL4_CNode root_cnode, seL4_CPtr low, seL4_CPtr high);
+bool cslot_setup(seL4_CNode root_cnode, seL4_CPtr low, seL4_CPtr high);
 
-seL4_CPtr cslot_ao_alloc(uint32_t count); // TODO: make sure that all users check error conditions
+seL4_CPtr cslot_alloc(void); // TODO: make sure that all users check error conditions
 
-void cslot_ao_dealloc_last(seL4_CPtr ptr);
+seL4_CPtr cslot_alloc_slab(uint32_t count);
+
+void cslot_free(seL4_CPtr ptr);
 
 // these three are necessary because SOMEONE has to know the CSpace layout
 // TODO: look at all of the uses of these to make sure they're used properly in the context of errx.

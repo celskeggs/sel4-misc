@@ -1,5 +1,5 @@
 #include "serial.h"
-#include <resource/cslot_ao.h>
+#include <resource/cslot.h>
 #include <resource/object.h>
 
 // #define SERIAL_IO_PORT 0x3F8
@@ -43,7 +43,7 @@ static serial_cb read_callback = NULL;
 bool serial_init(seL4_IA32_IOPort iop, seL4_IRQControl ctrl, serial_cb cb) {
     io = iop;
     IOACCESS
-    handler = cslot_ao_alloc(1);
+    handler = cslot_alloc();
     notification = object_alloc_notification();
     assert(handler != seL4_CapNull && notification != seL4_CapNull);
     if (!cslot_irqget(ctrl, SERIAL_IO_IRQ, handler)) {

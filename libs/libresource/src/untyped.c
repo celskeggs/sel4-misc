@@ -1,5 +1,5 @@
 #include <resource/untyped.h>
-#include <resource/cslot_ao.h>
+#include <resource/cslot.h>
 #include <resource/mem_fx.h>
 
 // tracks two sizes:
@@ -115,7 +115,7 @@ untyped_4k_ref untyped_allocate_4k(void) {
         seL4_Untyped larger_ut = untyped_ptr_4m(larger);
 
         uint32_t caps_needed = 1U << (BITS_4MIB - BITS_4KIB);
-        seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_CPtr slots = cslot_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
         if (slots == seL4_CapNull) {
             return NULL;
         }
@@ -173,7 +173,7 @@ void untyped_free_4k(untyped_4k_ref mem) {
 bool untyped_add_memory(seL4_Untyped ut, int size_bits) {
     if (size_bits > BITS_4MIB) {
         uint32_t caps_needed = 1U << (size_bits - BITS_4MIB);
-        seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_CPtr slots = cslot_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
         if (slots == seL4_CapNull) {
             return false;
         }
@@ -191,10 +191,10 @@ bool untyped_add_memory(seL4_Untyped ut, int size_bits) {
         }
         return true;
     } else if (size_bits == BITS_4MIB) {
-        return untyped_add_memory_4m(ut, cslot_ao_alloc(1));
+        return untyped_add_memory_4m(ut, cslot_alloc());
     } else if (size_bits > BITS_4KIB) {
         uint32_t caps_needed = 1U << (size_bits - BITS_4KIB);
-        seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
+        seL4_CPtr slots = cslot_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
         if (slots == seL4_CapNull) {
             return false;
         }
@@ -212,7 +212,7 @@ bool untyped_add_memory(seL4_Untyped ut, int size_bits) {
         }
         return true;
     } else if (size_bits == BITS_4KIB) {
-        return untyped_add_memory_4k(ut, cslot_ao_alloc(1));
+        return untyped_add_memory_4k(ut, cslot_alloc());
     } else {
         assert(size_bits > 0 && size_bits < BITS_4KIB);
         // note: we're wasting these, but it's not very much memory in the big scheme of things

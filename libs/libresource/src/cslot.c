@@ -3,7 +3,7 @@
 
 #define BITMAP_ELEMENTS (PAGE_SIZE / 16)
 #define BITMAP_BYTES (BITMAP_ELEMENTS / 8)
-#define BITMAP_AVAIL(range, i) ((range->avail_bitmap[(i) >> 3] & ((i) & 7)) != 0)
+#define BITMAP_AVAIL(range, i) ((range->avail_bitmap[(i) >> 3] & BIT((i) & 7)) != 0)
 #define BITMAP_SET_USED(range, i) (range->avail_bitmap[(i) >> 3] &= ~BIT((i) & 7))
 #define BITMAP_SET_AVAIL(range, i) (range->avail_bitmap[(i) >> 3] |= BIT((i) & 7))
 seL4_CompileTimeAssert(BITMAP_BYTES == 32);
@@ -85,6 +85,7 @@ static bool expand_cslot_pool(void) {
 static seL4_CPtr alloc_from_range(struct cslot_range *range) {
     while (range->avail < range->low + BITMAP_ELEMENTS) {
         if (!BITMAP_AVAIL(range, range->avail - range->low)) {
+            range->avail++;
             continue; // try again
         }
         // found an empty slot!
@@ -122,16 +123,16 @@ static seL4_CPtr cslot_alloc_slab_from_range(struct cslot_range *range, uint32_t
         range->avail++;
     }
     uint32_t current_ptr = range->avail;
-    while (range->low + BITMAP_ELEMENTS - range->avail >= count) {
+    while (range->low + BITMAP_ELEMENTS - current_ptr >= count) {
         uint32_t avail_at_current = range_count(range, current_ptr - range->low);
         if (avail_at_current == 0) {
-            range->avail++;
+            current_ptr++;
         } else if (avail_at_current >= count) {
             // FOUND IT
             range_alloc(range, current_ptr - range->low, count);
-            return current_ptr - range->low;
+            return current_ptr;
         } else {
-            range->avail += avail_at_current + 1;
+            current_ptr += avail_at_current + 1;
         }
     }
     return seL4_CapNull;

@@ -2,6 +2,7 @@
 #define SEL4_MISC_OBJECT_H
 
 #include <sel4/sel4.h>
+#include <bedrock/errx.h> // this module uses errx
 
 seL4_CPtr object_alloc_endpoint();
 seL4_CPtr object_alloc_notification();

@@ -24,10 +24,10 @@ void *memcpy(void *dest, const void *src, size_t count) {
 extern char *strblit(char *dest, size_t buffer_len, const char *src) {
     assert(dest != NULL && src != NULL);
     size_t i;
-    for (i = 0; i < buffer_len - 1 && *src; i++) {
-        dest[i] = *src;
+    for (i = 0; i < buffer_len - 1 && src[i]; i++) {
+        dest[i] = src[i];
     }
-    assert(0 <= i && i < buffer_len);
+    assert(i < buffer_len);
     dest[i] = '\0'; // always null-terminated
     return dest;
 }

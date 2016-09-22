@@ -1,7 +1,8 @@
 #ifndef SEL4_MISC_MEM_VSPACE_H
 #define SEL4_MISC_MEM_VSPACE_H
 
-#include "mem_page.h"
+#include <bedrock/types.h>
+#include <bedrock/errx.h> // this module uses errx
 
 struct mem_vspace {
     // represents two regions:

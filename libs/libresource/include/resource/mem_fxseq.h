@@ -1,6 +1,7 @@
 #ifndef SEL4_MISC_MEM_FXSEQ_H
 #define SEL4_MISC_MEM_FXSEQ_H
 
+#include <bedrock/errx.h> // this module uses errx
 #include "mem_page.h"
 #include "mem_fxalloc.h"
 
@@ -21,7 +22,7 @@ struct mem_fxseq {
 // does not currently have a way to be deinitialized, but maybe TODO it should?
 // NOTE: this system WILL WORK before being initialized! this is purposeful, for bootstrapping reasons. allocation will
 // be limited, however, until that point.
-seL4_Error mem_fxseq_init(struct mem_fxseq *fxseq);
+bool mem_fxseq_init(struct mem_fxseq *fxseq);
 
 void *mem_fxseq_alloc(struct mem_fxseq *fxseq, size_t size);
 

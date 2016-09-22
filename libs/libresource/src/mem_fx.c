@@ -6,7 +6,7 @@ static struct mem_fxcache fx_cache = MEM_FXCACHE_INIT;
 static struct mem_fxseq fx_seq = MEM_FXSEQ_PREINIT;
 static bool is_allocating;
 
-seL4_Error mem_fx_init(void) {
+bool mem_fx_init(void) {
     return mem_fxseq_init(&fx_seq);
 }
 

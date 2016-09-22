@@ -36,19 +36,18 @@ static seL4_CPtr notification = seL4_CapNull;
 static serial_cb read_callback = NULL;
 
 #define IOACCESS seL4_Error err; seL4_IA32_IOPort_In8_t ret; // used for the next two definitions
-#define OUT(port, value) if ((err = seL4_IA32_IOPort_Out8(io, port, value)) != seL4_NoError) { return err; }
-#define IN(port) if ((ret = seL4_IA32_IOPort_In8(io, port)).error != seL4_NoError) { return ret.error; }
+#define OUT(port, value) if ((err = seL4_IA32_IOPort_Out8(io, port, value)) != seL4_NoError) { ERRX_RAISE_SEL4(err); return false; }
+#define IN(port) if ((ret = seL4_IA32_IOPort_In8(io, port)).error != seL4_NoError) { ERRX_RAISE_SEL4(ret.error); return false; }
 #define INVALUE (ret.result)
 
-seL4_Error serial_init(seL4_IA32_IOPort iop, seL4_IRQControl ctrl, serial_cb cb) {
+bool serial_init(seL4_IA32_IOPort iop, seL4_IRQControl ctrl, serial_cb cb) {
     io = iop;
     IOACCESS
     handler = cslot_ao_alloc(1);
     notification = object_alloc_notification();
     assert(handler != seL4_CapNull && notification != seL4_CapNull);
-    err = cslot_irqget(ctrl, SERIAL_IO_IRQ, handler);
-    if (err != seL4_NoError) {
-        return err;
+    if (!cslot_irqget(ctrl, SERIAL_IO_IRQ, handler)) {
+        return false;
     }
     assert(seL4_IRQHandler_SetNotification(handler, notification) == seL4_NoError);
     OUT(SERIAL_IO_INTERRUPT_ENABLE, 0x00);
@@ -64,7 +63,7 @@ seL4_Error serial_init(seL4_IA32_IOPort iop, seL4_IRQControl ctrl, serial_cb cb)
     IN(SERIAL_IO_LINE_STAT_REG);
     assert(!(INVALUE & 0x01));
     // TODO: actually READ stuff
-    return seL4_NoError;
+    return true;
 }
 
 void serial_wait_ready(void) {
@@ -85,25 +84,25 @@ void serial_wait_ready(void) {
     }
 }
 
-seL4_Error serial_write_byte(char b) {
+bool serial_write_byte(char b) {
     IOACCESS
     IN(SERIAL_IO_LINE_STAT_REG);
     assert(!(INVALUE & 0x01));
     if ((INVALUE & LINE_STAT_OKAY_TO_WRITE) == 0) {
-        return seL4_TruncatedMessage; // TODO: actually respond to this properly. we can't test this on qemu, though.
+        ERRX_RAISE_GENERIC(GERR_DATA_SPILLED);
+        return false; // TODO: actually respond to this properly. we can't test this on qemu, though.
     }
     OUT(SERIAL_IO_DATA, (uint8_t) b);
-    return seL4_NoError;
+    return true;
 }
 
-seL4_Error serial_write(char *data, size_t length) {
+bool serial_write(char *data, size_t length) {
     assert(io != seL4_CapNull);
     assert(data != NULL);
     while (length-- > 0) {
-        seL4_Error err = serial_write_byte(*data++);
-        if (err != seL4_NoError) {
-            return err;
+        if (!serial_write_byte(*data++)) {
+            return false;
         }
     }
-    return seL4_NoError;
+    return true;
 }

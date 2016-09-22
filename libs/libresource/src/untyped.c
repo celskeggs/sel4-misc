@@ -18,15 +18,14 @@ struct s_4k {
     struct s_4k *next;
 };
 
-static seL4_Error untyped_split(seL4_Untyped ut, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
+static bool untyped_split(seL4_Untyped ut, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
     assert(ut != seL4_CapNull);
     assert(slot != seL4_CapNull);
     // this implementation is specific to creating untypeds because of weirdness around size_bits handling in the kernel
     while (num_objects > CONFIG_RETYPE_FAN_OUT_LIMIT) {
-        seL4_Error err = cslot_retype(ut, seL4_UntypedObject, offset, size_bits, slot,
-                                             CONFIG_RETYPE_FAN_OUT_LIMIT);
-        if (err != seL4_NoError) {
-            return err; // TODO: better cleanup
+        bool success = cslot_retype(ut, seL4_UntypedObject, offset, size_bits, slot, CONFIG_RETYPE_FAN_OUT_LIMIT);
+        if (!success) {
+            return false; // TODO: better cleanup
         }
         num_objects -= CONFIG_RETYPE_FAN_OUT_LIMIT;
         slot += CONFIG_RETYPE_FAN_OUT_LIMIT;
@@ -42,20 +41,21 @@ static uintptr_t avail_4ks_count = 0; // reflects the length of avail_4ks
 
 // =================== 4M CHUNKS ===================
 
-static seL4_Error untyped2_add_memory_4m(seL4_Untyped ut, seL4_CPtr aux) {
+static bool untyped_add_memory_4m(seL4_Untyped ut, seL4_CPtr aux) {
     struct s_4m *node = mem_fx_alloc(sizeof(struct s_4m));
     if (node == NULL) {
-        return seL4_NotEnoughMemory;
+        return false;
     }
     node->ut = ut;
     node->aux = aux;
     node->next = avail_4ms;
     avail_4ms = node;
-    return seL4_NoError;
+    return true;
 }
 
 untyped_4m_ref untyped_allocate_4m(void) {
     if (avail_4ms == NULL) {
+        ERRX_RAISE_GENERIC(GERR_MEMORY_POOL_EXHAUSTED);
         return NULL;
     } else {
         struct s_4m *found = avail_4ms;
@@ -80,23 +80,23 @@ void untyped_free_4m(untyped_4m_ref mem) {
     assert(n != NULL && n->next == NULL);
     n->next = avail_4ms;
     avail_4ms = n;
-    assert(cslot_delete(n->aux) == seL4_NoError);
-    assert(cslot_revoke(n->ut) == seL4_NoError);
+    assert(cslot_delete(n->aux));
+    assert(cslot_revoke(n->ut));
 }
 
 // =================== 4K CHUNKS ===================
 
-static seL4_Error untyped2_add_memory_4k(seL4_Untyped ut, seL4_CPtr aux) {
+static bool untyped_add_memory_4k(seL4_Untyped ut, seL4_CPtr aux) {
     struct s_4k *node = mem_fx_alloc(sizeof(struct s_4k));
     if (node == NULL) {
-        return seL4_NotEnoughMemory;
+        return false;
     }
     node->ut = ut;
     node->aux = aux;
     node->next = avail_4ks;
     avail_4ks = node;
     avail_4ks_count++;
-    return seL4_NoError;
+    return true;
 }
 
 static bool refill_running = false;
@@ -116,17 +116,19 @@ untyped_4k_ref untyped_allocate_4k(void) {
 
         uint32_t caps_needed = 1U << (BITS_4MIB - BITS_4KIB);
         seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
-        seL4_Error err = untyped_split(larger_ut, 0, BITS_4KIB, slots, caps_needed);
-        if (err != seL4_NoError) {
-            DEBUG("failed during refill. allocating remnants anyway.");
+        if (slots == seL4_CapNull) {
+            return NULL;
+        }
+        bool success = untyped_split(larger_ut, 0, BITS_4KIB, slots, caps_needed);
+        if (!success) {
+            return NULL;
         } else {
             for (uint32_t i = 0; i < caps_needed; i++) {
                 // NOTE: might recurse back to this allocator!
-                err = untyped2_add_memory_4k(slots + i, slots + caps_needed + i);
-                if (err != seL4_NoError) {
+                success = untyped_add_memory_4k(slots + i, slots + caps_needed + i);
+                if (!success) {
                     // note: we aren't cleaning up properly here... TODO do that.
-                    DEBUG("failed during refill. allocating remnants anyway.");
-                    break;
+                    return NULL;
                 }
             }
         }
@@ -135,6 +137,7 @@ untyped_4k_ref untyped_allocate_4k(void) {
     }
     if (avail_4ks == NULL) {
         assert(avail_4ks_count == 0);
+        ERRX_RAISE_GENERIC(GERR_MEMORY_POOL_EXHAUSTED);
         return NULL;
     } else {
         assert(avail_4ks_count > 0);
@@ -160,64 +163,70 @@ void untyped_free_4k(untyped_4k_ref mem) {
     assert(n != NULL && n->next == NULL);
     n->next = avail_4ks;
     avail_4ks = n;
-    assert(cslot_delete(n->aux) == seL4_NoError);
-    assert(cslot_revoke(n->ut) == seL4_NoError);
+    assert(cslot_delete(n->aux));
+    assert(cslot_revoke(n->ut));
 }
 
 // =================== MEMORY ADDITION ===================
 
 // if this fails, data structures may be corrupted. see below for reasons.
-seL4_Error untyped_add_memory(seL4_Untyped ut, int size_bits) {
+bool untyped_add_memory(seL4_Untyped ut, int size_bits) {
     if (size_bits > BITS_4MIB) {
         uint32_t caps_needed = 1U << (size_bits - BITS_4MIB);
         seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
-        seL4_Error err = untyped_split(ut, 0, BITS_4MIB, slots, caps_needed);
-        if (err != seL4_NoError) {
-            return err;
+        if (slots == seL4_CapNull) {
+            return false;
+        }
+        bool success = untyped_split(ut, 0, BITS_4MIB, slots, caps_needed);
+        if (!success) {
+            return false;
         }
         for (uint32_t i = 0; i < caps_needed; i++) {
-            err = untyped2_add_memory_4m(slots + i, slots + caps_needed + i);
-            if (err != seL4_NoError) {
+            success = untyped_add_memory_4m(slots + i, slots + caps_needed + i);
+            if (!success) {
                 // note: we aren't cleaning up properly here... TODO do that.
                 // since this is part of the initialization process, it should be ""okay"" - we'll just crash the system
-                return err;
+                return false;
             }
         }
-        return seL4_NoError;
+        return true;
     } else if (size_bits == BITS_4MIB) {
-        return untyped2_add_memory_4m(ut, cslot_ao_alloc(1));
+        return untyped_add_memory_4m(ut, cslot_ao_alloc(1));
     } else if (size_bits > BITS_4KIB) {
         uint32_t caps_needed = 1U << (size_bits - BITS_4KIB);
         seL4_CPtr slots = cslot_ao_alloc(caps_needed * 2); // * 2 so that we have aux slots
-        seL4_Error err = untyped_split(ut, 0, BITS_4KIB, slots, caps_needed);
-        if (err != seL4_NoError) {
-            return err;
+        if (slots == seL4_CapNull) {
+            return false;
+        }
+        bool success = untyped_split(ut, 0, BITS_4KIB, slots, caps_needed);
+        if (!success) {
+            return false;
         }
         for (uint32_t i = 0; i < caps_needed; i++) {
-            err = untyped2_add_memory_4k(slots + i, slots + caps_needed + i);
-            if (err != seL4_NoError) {
+            success = untyped_add_memory_4k(slots + i, slots + caps_needed + i);
+            if (!success) {
                 // note: we aren't cleaning up properly here... TODO do that.
                 // since this is part of the initialization process, it should be ""okay"" - we'll just crash the system
-                return err;
+                return false;
             }
         }
-        return seL4_NoError;
+        return true;
     } else if (size_bits == BITS_4KIB) {
-        return untyped2_add_memory_4k(ut, cslot_ao_alloc(1));
+        return untyped_add_memory_4k(ut, cslot_ao_alloc(1));
     } else {
         assert(size_bits > 0 && size_bits < BITS_4KIB);
         // note: we're wasting these, but it's not very much memory in the big scheme of things
-        return seL4_NoError;
+        return true;
     }
 }
 
-seL4_Error untyped_add_boot_memory(seL4_BootInfo *info) {
+bool untyped_add_boot_memory(seL4_BootInfo *info) {
     seL4_Word len = info->untyped.end - info->untyped.start;
     for (seL4_Word i = 0; i < len; i++) {
-        seL4_Error err = untyped_add_memory(info->untyped.start + i, info->untypedSizeBitsList[i]);
-        if (err != seL4_NoError) {
-            return err;
+        bool success = untyped_add_memory(info->untyped.start + i, info->untypedSizeBitsList[i]);
+        if (!success) {
+            return false;
         }
     }
-    return seL4_NoError;
+    return true;
 }

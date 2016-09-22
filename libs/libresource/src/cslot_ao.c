@@ -30,26 +30,56 @@ seL4_CPtr cslot_ao_alloc(uint32_t count) {
         c_next += count;
         return out;
     }
+    ERRX_RAISE_GENERIC(GERR_MEMORY_POOL_EXHAUSTED);
     return seL4_CapNull;
 }
 
-seL4_Error cslot_delete(seL4_CPtr ptr) {
-    return (seL4_Error) seL4_CNode_Delete(c_root_cnode, ptr, 32);
+bool cslot_delete(seL4_CPtr ptr) {
+    int err = seL4_CNode_Delete(c_root_cnode, ptr, 32);
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
 }
 
-seL4_Error cslot_copy(seL4_CPtr from, seL4_CPtr to) {
-    return (seL4_Error) seL4_CNode_Copy(c_root_cnode, to, 32, c_root_cnode, from, 32, seL4_AllRights);
+bool cslot_copy(seL4_CPtr from, seL4_CPtr to) {
+    int err = seL4_CNode_Copy(c_root_cnode, to, 32, c_root_cnode, from, 32, seL4_AllRights);
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
 }
 
-seL4_Error cslot_revoke(seL4_CPtr ptr) {
-    return (seL4_Error) seL4_CNode_Revoke(c_root_cnode, ptr, 32);
+bool cslot_revoke(seL4_CPtr ptr) {
+    int err = seL4_CNode_Revoke(c_root_cnode, ptr, 32);
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
 }
 
-seL4_Error cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
-    return (seL4_Error) seL4_Untyped_RetypeAtOffset(ut, type, offset, size_bits, c_root_cnode, 0, 0, slot,
-                                                    num_objects);
+bool cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
+    int err = seL4_Untyped_RetypeAtOffset(ut, type, offset, size_bits, c_root_cnode, 0, 0, slot, num_objects);
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
 }
 
-seL4_Error cslot_irqget(seL4_IRQControl ctrl, int irq, seL4_CPtr slot) {
-    return (seL4_Error) seL4_IRQControl_Get(ctrl, irq, c_root_cnode, slot, 32);
+bool cslot_irqget(seL4_IRQControl ctrl, int irq, seL4_CPtr slot) {
+    int err = seL4_IRQControl_Get(ctrl, irq, c_root_cnode, slot, 32);
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
 }

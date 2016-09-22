@@ -14,7 +14,7 @@ typedef seL4_Int16 int16_t;
 typedef seL4_Int32 int32_t;
 typedef seL4_Int64 int64_t;
 
-// TODO: calculate this better
+// TODO: support 64-bit systems
 typedef seL4_Int32 ssize_t;
 typedef seL4_Uint32 size_t;
 typedef seL4_Uint32 uintptr_t;

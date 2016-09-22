@@ -109,6 +109,7 @@ size_t mem_vspace_alloc_slice(struct mem_vspace *zone, size_t approximate_size) 
         cur = cur->next;
     }
     if (smallest_block == NULL) {
+        ERRX_RAISE_GENERIC(GERR_MEMORY_POOL_EXHAUSTED);
         return 0; // nothing is available with enough room
     }
     slice_partial_node(smallest_block, goal_rounded, zone);

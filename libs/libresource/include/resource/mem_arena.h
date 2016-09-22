@@ -1,6 +1,7 @@
 #ifndef SEL4_MISC_MEM_ARENA_H
 #define SEL4_MISC_MEM_ARENA_H
 
+#include <bedrock/errx.h> // this module uses errx
 #include "mem_vspace.h"
 #include "mem_page.h"
 
@@ -9,7 +10,7 @@ struct mem_arena {
     struct mem_vspace space;
 };
 
-seL4_Error mem_arena_allocate(struct mem_arena *arena, size_t approximate_size);
+bool mem_arena_allocate(struct mem_arena *arena, size_t approximate_size);
 static inline void *mem_arena_base(struct mem_arena *arena) {
     return arena->user_root;
 }

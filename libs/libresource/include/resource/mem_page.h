@@ -2,6 +2,7 @@
 #define SEL4_MISC_MEM_PAGE_H
 
 #include <bedrock/bedrock.h>
+#include <bedrock/errx.h> // this module uses errx TODO: search for seL4_Error, seL4_NoError everywhere and find bad uses
 #include "untyped.h"
 
 struct mem_page_cookie {
@@ -10,8 +11,8 @@ struct mem_page_cookie {
 };
 
 // TODO: support larger pages and use them in mem_arena
-seL4_Error mem_page_map(void *page, struct mem_page_cookie *cookie);
-seL4_Error mem_page_shared_map(void *addr, seL4_IA32_Page page);
+bool mem_page_map(void *page, struct mem_page_cookie *cookie);
+bool mem_page_shared_map(void *addr, seL4_IA32_Page page);
 void mem_page_shared_free(void *addr, seL4_IA32_Page page);
 void mem_page_free(struct mem_page_cookie *data);
 

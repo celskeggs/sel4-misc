@@ -1,16 +1,15 @@
 #include <resource/mem_fxalloc.h>
 
-seL4_Error mem_fxalloc_create(struct mem_fxalloc *fxalloc, size_t size_hint) {
+bool mem_fxalloc_create(struct mem_fxalloc *fxalloc, size_t size_hint) {
     struct mem_fxalloc_page_node *page_node = &fxalloc->page_root;
 
     size_t actual = mem_vspace_alloc_slice(&fxalloc->vspace, size_hint);
     if (actual == 0) {
-        return seL4_NotEnoughMemory;
+        return false;
     }
-    seL4_Error err = mem_page_map(mem_vspace_ptr(&fxalloc->vspace), &page_node->cookie);
-    if (err != seL4_NoError) {
+    if (!mem_page_map(mem_vspace_ptr(&fxalloc->vspace), &page_node->cookie)) {
         mem_vspace_dealloc_slice(&fxalloc->vspace);
-        return err;
+        return false;
     }
 
     fxalloc->current_ptr = mem_vspace_ptr(&fxalloc->vspace);
@@ -19,7 +18,7 @@ seL4_Error mem_fxalloc_create(struct mem_fxalloc *fxalloc, size_t size_hint) {
 
     page_node->next = NULL;
     fxalloc->page_head = page_node;
-    return seL4_NoError;
+    return true;
 }
 
 size_t mem_fxalloc_size(struct mem_fxalloc *fxalloc) {
@@ -31,16 +30,16 @@ bool mem_fxalloc_is_full(struct mem_fxalloc *fxalloc) {
 }
 
 // this preserves a valid setup of the data structure
-static seL4_Error acquire_another_page(struct mem_fxalloc *fxalloc) {
+static bool acquire_another_page(struct mem_fxalloc *fxalloc) {
     if (mem_fxalloc_is_full(fxalloc)) {
         // no more room!
-        return seL4_NotEnoughMemory;
+        ERRX_RAISE_SEL4(GERR_MEMORY_POOL_EXHAUSTED);
+        return false;
     }
     // allocate a new page and use a bit of memory (much less than we just allocated) to store its cookie
     struct mem_page_cookie cookie;
-    seL4_Error err = mem_page_map(fxalloc->alloc_ptr, &cookie);
-    if (err != seL4_NoError) {
-        return err;
+    if (!mem_page_map(fxalloc->alloc_ptr, &cookie)) {
+        return false;
     }
     fxalloc->alloc_ptr += PAGE_SIZE;
     assert(fxalloc->alloc_ptr <= fxalloc->end_ptr);
@@ -50,7 +49,7 @@ static seL4_Error acquire_another_page(struct mem_fxalloc *fxalloc) {
     new_node->next = fxalloc->page_head;
     fxalloc->page_head = new_node;
     // and we're back to a perfectly valid state
-    return seL4_NoError;
+    return true;
 }
 
 void *mem_fxalloc_alloc(struct mem_fxalloc *fxalloc, size_t size) {
@@ -60,10 +59,10 @@ void *mem_fxalloc_alloc(struct mem_fxalloc *fxalloc, size_t size) {
     assert(fxalloc->current_ptr != NULL);
     while (fxalloc->current_ptr + size > fxalloc->alloc_ptr) {
         if (fxalloc->current_ptr + size > fxalloc->end_ptr) {
+            ERRX_RAISE_GENERIC(GERR_MEMORY_POOL_EXHAUSTED);
             return NULL; // no amount of page allocation will make this possible at this point
         }
-        seL4_Error err = acquire_another_page(fxalloc);
-        if (err != seL4_NoError) {
+        if (!acquire_another_page(fxalloc)) {
             return NULL;
         }
     }

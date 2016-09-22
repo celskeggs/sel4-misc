@@ -1,6 +1,7 @@
 #ifndef SEL4_MISC_MEM_FXALLOC_H
 #define SEL4_MISC_MEM_FXALLOC_H
 
+#include <bedrock/errx.h> // this module uses errx
 #include "mem_vspace.h"
 #include "mem_page.h"
 
@@ -31,7 +32,7 @@ struct mem_fxalloc {
     struct mem_fxalloc_page_node *page_head;
 };
 
-seL4_Error mem_fxalloc_create(struct mem_fxalloc *fxalloc, size_t size_hint);
+bool mem_fxalloc_create(struct mem_fxalloc *fxalloc, size_t size_hint);
 
 size_t mem_fxalloc_size(struct mem_fxalloc *fxalloc);
 

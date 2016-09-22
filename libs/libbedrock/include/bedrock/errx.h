@@ -20,9 +20,12 @@ enum errx_generics {
     GERR_NONE=0,
     GERR_MEMORY_POOL_EXHAUSTED,
     GERR_INVALID_STATE,
-    GERR_DATA_SPILLED
+    GERR_DATA_SPILLED,
+    GERR_INVALID_MAGIC,
+    GERR_UNSUPPORTED_OPTION,
+    GERR_MALFORMED_DATA,
 };
-#define _ERRX_GENERIC_STRINGS { "OK", "Memory Pool Exhausted", "Invalid State for Operation", "Data Spilled and Lost" }
+#define _ERRX_GENERIC_STRINGS { "OK", "Memory Pool Exhausted", "Invalid State for Operation", "Data Spilled and Lost", "Invalid Magic Number", "Unsupported Option", "Malformed Data" }
 
 extern void errx_type_none(uint64_t, char *, size_t);
 

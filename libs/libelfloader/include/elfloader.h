@@ -3,6 +3,7 @@
 
 #include <bedrock/bedrock.h>
 #include <resource/untyped.h>
+#include <bedrock/errx.h> // this module uses errx
 
 struct pagetable {
     untyped_4k_ref pt;

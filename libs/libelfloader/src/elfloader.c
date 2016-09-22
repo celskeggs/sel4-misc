@@ -30,17 +30,17 @@ static struct pagetable *get_pagetable(struct pd_param *pdp, void *virtual_addre
         return NULL;
     }
     seL4_IA32_PageTable table = untyped_auxptr_4k(pt->pt);
-    seL4_Error err = cslot_retype(untyped_ptr_4k(pt->pt), seL4_IA32_PageTableObject, 0, 0, table, 1);
-    if (err != seL4_NoError) {
+    if (!cslot_retype(untyped_ptr_4k(pt->pt), seL4_IA32_PageTableObject, 0, 0, table, 1)) {
         untyped_free_4k(pt->pt);
         mem_fx_free(pt, sizeof(struct pagetable));
         return NULL;
     }
-    err = (seL4_Error) seL4_IA32_PageTable_Map(table, pdp->pagedir->pd, page_table_id * PAGE_TABLE_SIZE,
+    int err = seL4_IA32_PageTable_Map(table, pdp->pagedir->pd, page_table_id * PAGE_TABLE_SIZE,
                                                seL4_IA32_Default_VMAttributes);
     if (err != seL4_NoError) {
         untyped_free_4k(pt->pt);
         mem_fx_free(pt, sizeof(struct pagetable));
+        ERRX_RAISE_SEL4(err);
         return NULL;
     }
     for (int i = 0; i < PAGE_COUNT_PER_TABLE; i++) {
@@ -51,12 +51,12 @@ static struct pagetable *get_pagetable(struct pd_param *pdp, void *virtual_addre
     return pt;
 }
 
-static seL4_Error remapper(void *cookie, void *virtual_address, uint8_t access_flags) {
+static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) {
     struct pd_param *param = (struct pd_param *) cookie;
     assert(param != NULL);
     struct pagetable *pt = get_pagetable(param, virtual_address);
     if (pt == NULL) {
-        return seL4_NotEnoughMemory;
+        return false;
     }
     uint32_t page_offset = (((uintptr_t) virtual_address) >> seL4_PageBits) & (PAGE_COUNT_PER_TABLE - 1);
     assert(page_offset < PAGE_COUNT_PER_TABLE);
@@ -64,22 +64,22 @@ static seL4_Error remapper(void *cookie, void *virtual_address, uint8_t access_f
         // NEED TO ALLOCATE PAGE
         untyped_4k_ref ut = untyped_allocate_4k();
         if (ut == NULL) {
-            return seL4_NotEnoughMemory;
+            return false;
         }
-        seL4_Error err = cslot_retype(untyped_ptr_4k(ut), seL4_IA32_4K, 0, 0, untyped_auxptr_4k(ut), 1);
-        if (err != seL4_NoError) {
+        if (!cslot_retype(untyped_ptr_4k(ut), seL4_IA32_4K, 0, 0, untyped_auxptr_4k(ut), 1)) {
             untyped_free_4k(ut);
-            return err;
+            return false;
         }
         seL4_CapRights rights = (seL4_CapRights) (((access_flags & ELF_MEM_WRITABLE) ? seL4_CanWrite : 0) |
                                                   ((access_flags & (ELF_MEM_READABLE | ELF_MEM_EXECUTABLE))
                                                    ? seL4_CanRead
                                                    : 0));
-        err = (seL4_Error) seL4_IA32_Page_Map(untyped_auxptr_4k(ut), param->pagedir->pd, (uintptr_t) virtual_address,
+        int err = seL4_IA32_Page_Map(untyped_auxptr_4k(ut), param->pagedir->pd, (uintptr_t) virtual_address,
                                               rights, seL4_IA32_Default_VMAttributes);
         if (err != seL4_NoError) {
             untyped_free_4k(ut);
-            return err;
+            ERRX_RAISE_SEL4(err);
+            return false;
         }
         pt->pages[page_offset] = ut;
         pt->page_accesses[page_offset] = access_flags;
@@ -96,9 +96,13 @@ static seL4_Error remapper(void *cookie, void *virtual_address, uint8_t access_f
     }
     assert(cslot_delete(alt) == seL4_NoError);
     assert(cslot_copy(page, alt) == seL4_NoError);
-    seL4_Error err = mem_page_shared_map(param->target_addr, alt);
-    param->is_cptr_active = err != seL4_NoError;
-    return err;
+    if (!mem_page_shared_map(param->target_addr, alt)) {
+        param->is_cptr_active = false;
+        return false;
+    } else {
+        param->is_cptr_active = true;
+        return true;
+    }
 }
 
 struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirectory page_dir, seL4_CPtr spare_cptr) {
@@ -120,13 +124,13 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
         pdir->pts[i] = NULL;
     }
-    seL4_Error err = elfparser_load(elf, file_size, remapper, &param, buffer);
+    bool success = elfparser_load(elf, file_size, remapper, &param, buffer);
     if (param.is_cptr_active) {
         mem_page_shared_free(buffer, spare_cptr);
     }
     cslot_delete(spare_cptr);
     mem_vspace_dealloc_slice(&zone);
-    if (err != seL4_NoError) {
+    if (!success) {
         for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
             struct pagetable *pt = param.pagedir->pts[i];
             if (pt != NULL) {

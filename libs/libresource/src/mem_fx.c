@@ -34,6 +34,9 @@ void *mem_fx_alloc(size_t size) {
     void *out = mem_fxcache_query(&fx_cache, size);
     if (out == NULL) {
         out = mem_fxseq_alloc(&fx_seq, size);
+        if (out == NULL) {
+            ERRX_TRACEPOINT;
+        }
     }
     assert(is_allocating);
     is_allocating = false;

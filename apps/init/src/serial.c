@@ -44,9 +44,17 @@ bool serial_init(seL4_IA32_IOPort iop, seL4_IRQControl ctrl, serial_cb cb) {
     io = iop;
     IOACCESS
     handler = cslot_alloc();
+    if (handler == seL4_CapNull) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
     notification = object_alloc_notification();
-    assert(handler != seL4_CapNull && notification != seL4_CapNull);
+    if (notification == seL4_CapNull) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
     if (!cslot_irqget(ctrl, SERIAL_IO_IRQ, handler)) {
+        ERRX_TRACEPOINT;
         return false;
     }
     assert(seL4_IRQHandler_SetNotification(handler, notification) == seL4_NoError);

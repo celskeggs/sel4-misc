@@ -145,6 +145,7 @@ seL4_CPtr cslot_alloc(void) {
         }
     }
     if (!expand_cslot_pool()) {
+        ERRX_TRACEPOINT;
         return seL4_CapNull;
     } else {
         seL4_CPtr cptr = alloc_from_range(root_range);
@@ -170,6 +171,7 @@ seL4_CPtr cslot_alloc_slab(uint32_t count) {
         }
     }
     if (!expand_cslot_pool()) {
+        ERRX_TRACEPOINT;
         return seL4_CapNull;
     } else {
         seL4_CPtr cptr = cslot_alloc_slab_from_range(root_range, count);

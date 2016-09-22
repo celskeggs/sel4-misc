@@ -22,17 +22,20 @@ static struct pagetable *get_pagetable(struct pd_param *pdp, void *virtual_addre
     }
     pt = (struct pagetable *) mem_fx_alloc(sizeof(struct pagetable));
     if (pt == NULL) {
+        ERRX_TRACEPOINT;
         return NULL;
     }
     pt->pt = untyped_allocate_4k();
     if (pt->pt == NULL) {
         mem_fx_free(pt, sizeof(struct pagetable));
+        ERRX_TRACEPOINT;
         return NULL;
     }
     seL4_IA32_PageTable table = untyped_auxptr_4k(pt->pt);
     if (!cslot_retype(untyped_ptr_4k(pt->pt), seL4_IA32_PageTableObject, 0, 0, table, 1)) {
         untyped_free_4k(pt->pt);
         mem_fx_free(pt, sizeof(struct pagetable));
+        ERRX_TRACEPOINT;
         return NULL;
     }
     int err = seL4_IA32_PageTable_Map(table, pdp->pagedir->pd, page_table_id * PAGE_TABLE_SIZE,
@@ -56,6 +59,7 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
     assert(param != NULL);
     struct pagetable *pt = get_pagetable(param, virtual_address);
     if (pt == NULL) {
+        ERRX_TRACEPOINT;
         return false;
     }
     uint32_t page_offset = (((uintptr_t) virtual_address) >> seL4_PageBits) & (PAGE_COUNT_PER_TABLE - 1);
@@ -64,10 +68,12 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
         // NEED TO ALLOCATE PAGE
         untyped_4k_ref ut = untyped_allocate_4k();
         if (ut == NULL) {
+            ERRX_TRACEPOINT;
             return false;
         }
         if (!cslot_retype(untyped_ptr_4k(ut), seL4_IA32_4K, 0, 0, untyped_auxptr_4k(ut), 1)) {
             untyped_free_4k(ut);
+            ERRX_TRACEPOINT;
             return false;
         }
         seL4_CapRights rights = (seL4_CapRights) (((access_flags & ELF_MEM_WRITABLE) ? seL4_CanWrite : 0) |
@@ -98,6 +104,7 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
     assert(cslot_copy(page, alt) == seL4_NoError);
     if (!mem_page_shared_map(param->target_addr, alt)) {
         param->is_cptr_active = false;
+        ERRX_TRACEPOINT;
         return false;
     } else {
         param->is_cptr_active = true;
@@ -109,6 +116,7 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     struct mem_vspace zone;
     size_t actual_size = mem_vspace_alloc_slice(&zone, PAGE_SIZE * 2);
     if (actual_size == 0) {
+        ERRX_TRACEPOINT;
         return NULL;
     }
     assert(actual_size >= PAGE_SIZE);
@@ -117,6 +125,7 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     struct pagedir *pdir = mem_fx_alloc(sizeof(struct pagedir));
     if (pdir == NULL) {
         mem_vspace_dealloc_slice(&zone);
+        ERRX_TRACEPOINT;
         return NULL;
     }
     pdir->pd = page_dir;
@@ -146,6 +155,7 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
             param.pagedir->pts[i] = NULL;
         }
         mem_fx_free(param.pagedir, sizeof(struct pagedir));
+        ERRX_TRACEPOINT;
         return NULL;
     }
     return param.pagedir;

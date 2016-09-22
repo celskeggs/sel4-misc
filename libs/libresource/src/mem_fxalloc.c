@@ -5,10 +5,12 @@ bool mem_fxalloc_create(struct mem_fxalloc *fxalloc, size_t size_hint) {
 
     size_t actual = mem_vspace_alloc_slice(&fxalloc->vspace, size_hint);
     if (actual == 0) {
+        ERRX_TRACEPOINT;
         return false;
     }
     if (!mem_page_map(mem_vspace_ptr(&fxalloc->vspace), &page_node->cookie)) {
         mem_vspace_dealloc_slice(&fxalloc->vspace);
+        ERRX_TRACEPOINT;
         return false;
     }
 
@@ -39,6 +41,7 @@ static bool acquire_another_page(struct mem_fxalloc *fxalloc) {
     // allocate a new page and use a bit of memory (much less than we just allocated) to store its cookie
     struct mem_page_cookie cookie;
     if (!mem_page_map(fxalloc->alloc_ptr, &cookie)) {
+        ERRX_TRACEPOINT;
         return false;
     }
     fxalloc->alloc_ptr += PAGE_SIZE;
@@ -63,6 +66,7 @@ void *mem_fxalloc_alloc(struct mem_fxalloc *fxalloc, size_t size) {
             return NULL; // no amount of page allocation will make this possible at this point
         }
         if (!acquire_another_page(fxalloc)) {
+            ERRX_TRACEPOINT;
             return NULL;
         }
     }

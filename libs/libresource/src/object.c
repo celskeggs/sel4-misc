@@ -24,11 +24,13 @@ static struct small_table *alloc_small_table() {
     seL4_CompileTimeAssert(SMALL_TABLE_ALLOC_BITS == BITS_4KIB);
     untyped_4k_ref ref = untyped_allocate_4k();
     if (ref == NULL) {
+        ERRX_TRACEPOINT;
         return NULL;
     }
     struct small_table *tab = mem_fx_alloc(sizeof(struct small_table));
     if (tab == NULL) {
         untyped_free_4k(ref);
+        ERRX_TRACEPOINT;
         return NULL;
     }
     tab->ref = ref;
@@ -36,6 +38,7 @@ static struct small_table *alloc_small_table() {
     if (tab->chunk_base == seL4_CapNull) {
         mem_fx_free(tab, sizeof(struct small_table));
         untyped_free_4k(ref);
+        ERRX_TRACEPOINT;
         return NULL;
     }
     tab->free = SMALL_TABLE_SIZE;
@@ -77,6 +80,7 @@ static bool untyped_retype_to(untyped_4k_ref ref, int type, int offset, int size
 static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
     struct small_table *nonfull_table = get_nonfull_small_table();
     if (nonfull_table == NULL) {
+        ERRX_TRACEPOINT;
         return seL4_CapNull;
     }
     assert(nonfull_table->free > 0);
@@ -102,6 +106,7 @@ static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
     uint32_t our_offset = nonfull_table->bitmap_free_index * 64uL + first_alloc_index;
     seL4_CPtr ptr = nonfull_table->chunk_base + our_offset;
     if (!untyped_retype_to(nonfull_table->ref, type, 16 * our_offset, 0, ptr)) {
+        ERRX_TRACEPOINT;
         return seL4_CapNull;
     }
     // commit changes
@@ -149,11 +154,13 @@ seL4_CPtr object_alloc_notification() {
 static seL4_CPtr object_alloc_4k(int type, uint8_t size_bits_alloc) {
     untyped_4k_ref ref = untyped_allocate_4k();
     if (ref == NULL) {
+        ERRX_TRACEPOINT;
         return seL4_CapNull;
     }
     seL4_CPtr ptr = untyped_auxptr_4k(ref);
     if (!untyped_retype_to(ref, type, 0, size_bits_alloc, ptr)) {
         untyped_free_4k(ref);
+        ERRX_TRACEPOINT;
         return seL4_CapNull;
     }
     return ptr;

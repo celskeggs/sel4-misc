@@ -4,6 +4,7 @@ bool mem_arena_allocate(struct mem_arena *arena, size_t approximate_size) {
     size_t real_size = mem_vspace_alloc_slice(&arena->space, approximate_size);
     if (real_size == 0) {
         arena->user_root = NULL;
+        ERRX_TRACEPOINT;
         return false;
     }
     struct mem_page_cookie root_cookie;
@@ -11,6 +12,7 @@ bool mem_arena_allocate(struct mem_arena *arena, size_t approximate_size) {
     if (!mem_page_map(root, &root_cookie)) {
         mem_vspace_dealloc_slice(&arena->space);
         arena->user_root = NULL;
+        ERRX_TRACEPOINT;
         return false;
     }
     size_t cookie_count = real_size / PAGE_SIZE;
@@ -26,6 +28,7 @@ bool mem_arena_allocate(struct mem_arena *arena, size_t approximate_size) {
             }
             mem_vspace_dealloc_slice(&arena->space);
             arena->user_root = NULL;
+            ERRX_TRACEPOINT;
             return false;
         }
     }

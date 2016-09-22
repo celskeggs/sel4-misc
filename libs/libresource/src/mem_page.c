@@ -24,11 +24,13 @@ static bool map_table(void *page) {
     seL4_CompileTimeAssert(seL4_PageTableBits == BITS_4KIB);
     untyped_4k_ref ref = untyped_allocate_4k();
     if (ref == NULL) {
+        ERRX_TRACEPOINT;
         return false;
     }
     seL4_IA32_PageTable table = untyped_auxptr_4k(ref);
     if (!untyped_retype_to(ref, seL4_IA32_PageTableObject, 0, 0, table)) {
         untyped_free_4k(ref);
+        ERRX_TRACEPOINT;
         return false;
     }
     int err = seL4_IA32_PageTable_Map(table, current_vspace, tid * PAGE_TABLE_SIZE,
@@ -85,11 +87,13 @@ bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
     seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB);
     untyped_4k_ref ref = untyped_allocate_4k();
     if (ref == NULL) {
+        ERRX_TRACEPOINT;
         return false;
     }
     seL4_IA32_Page pent = untyped_auxptr_4k(ref);
     if (!untyped_retype_to(ref, seL4_IA32_4K, 0, 0, pent)) {
         untyped_free_4k(ref);
+        ERRX_TRACEPOINT;
         return false;
     }
     int err = seL4_IA32_Page_Map(pent, current_vspace, (uintptr_t) page, seL4_AllRights,
@@ -100,6 +104,7 @@ bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
     } else {
         if (err == seL4_FailedLookup) {
             if (!map_table(page)) {
+                ERRX_TRACEPOINT;
                 return false;
             }
             err = seL4_IA32_Page_Map(pent, current_vspace, (uintptr_t) page, seL4_AllRights,

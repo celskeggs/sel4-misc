@@ -2,6 +2,7 @@
 
 bool mem_fxseq_init(struct mem_fxseq *fxseq) {
     if (!mem_fxalloc_create(&fxseq->prealloc, MEM_FXSEQ_INITIAL_CHUNK * 2)) {
+        ERRX_TRACEPOINT;
         return false;
     }
     fxseq->ready = &fxseq->prealloc;
@@ -19,10 +20,12 @@ static bool expand_pool(struct mem_fxseq *fxseq) {
     fxseq->ready = NULL; // make sure this section doesn't recurse
     struct mem_fxalloc *next = (struct mem_fxalloc *) mem_fxalloc_alloc(fxseq->active, sizeof(struct mem_fxalloc));
     if (next == NULL) {
+        ERRX_TRACEPOINT;
         return false; // could not set up memory stuff
     }
     if (!mem_fxalloc_create(next, mem_fxalloc_size(fxseq->active) * 2)) {
         // TODO: don't leak 'next'
+        ERRX_TRACEPOINT;
         return false;
     }
     fxseq->ready = next;
@@ -43,6 +46,7 @@ void *mem_fxseq_alloc(struct mem_fxseq *fxseq, size_t size) {
         }
         // fixed pool is over; time to switch to dynamic pool
         if (!expand_pool(fxseq)) {
+            ERRX_TRACEPOINT;
             return NULL;
         }
     }
@@ -52,11 +56,13 @@ void *mem_fxseq_alloc(struct mem_fxseq *fxseq, size_t size) {
         return out;
     } else if (!mem_fxalloc_is_full(fxseq->active)) {
         // not full, so it failed for some other reason - expanding the pool won't help
+        ERRX_TRACEPOINT;
         return NULL;
     } else {
         ERRX_CONSUME;
         // full, so we need to expand the pool
         if (!expand_pool(fxseq)) {
+            ERRX_TRACEPOINT;
             return NULL;
         }
         // if this doesn't work, then there's no point trying anything else.

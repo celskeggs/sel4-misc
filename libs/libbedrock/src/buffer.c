@@ -21,6 +21,7 @@ void *memcpy(void *dest, const void *src, size_t count) {
 }
 
 // moves as much as possible of a string into a buffer, but makes sure the result is always property terminated.
+// returns a pointer to the generated null terminator
 extern char *strblit(char *dest, size_t buffer_len, const char *src) {
     assert(dest != NULL && src != NULL);
     size_t i;
@@ -29,7 +30,22 @@ extern char *strblit(char *dest, size_t buffer_len, const char *src) {
     }
     assert(i < buffer_len);
     dest[i] = '\0'; // always null-terminated
-    return dest;
+    return &dest[i];
+}
+
+// same as strblit, but takes buffer_len as a pointer and updates it.
+// used for successive blits.
+extern char *strblitadv(char *dest, size_t *buffer_len_p, const char *src) {
+    assert(dest != NULL && src != NULL);
+    size_t buffer_len = *buffer_len_p;
+    size_t i;
+    for (i = 0; i < buffer_len - 1 && src[i]; i++) {
+        dest[i] = src[i];
+    }
+    assert(i < buffer_len);
+    dest[i] = '\0'; // always null-terminated
+    *buffer_len_p = buffer_len - i;
+    return &dest[i];
 }
 
 size_t strlen(const char *ptr) {

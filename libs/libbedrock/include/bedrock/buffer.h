@@ -9,6 +9,8 @@ extern void *memcpy(void *dest, const void *src, size_t count);
 
 extern char *strblit(char *dest, size_t buffer_len, const char *src);
 
+extern char *strblitadv(char *dest, size_t *buffer_len, const char *src);
+
 extern size_t strlen(const char *ptr);
 
 #endif //LIB_BEDROCK_BUFFER_H

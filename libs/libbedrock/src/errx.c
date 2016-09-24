@@ -40,6 +40,7 @@ seL4_CompileTimeAssert(seL4_NotEnoughMemory == 10);
 seL4_CompileTimeAssert(ERR_COUNT == 11);
 
 extern void errx_type_sel4(void *p, char *out, size_t len) {
+    out = strblitadv(out, &len, "\nTraceback (innermost frame first):\n\t");
     struct errx_status *errx_status = (struct errx_status *) p;
     if (errx_status->extra >= ERR_COUNT) {
         out = strblitadv(out, &len, SEL4_ERR_PREFIX "Unknown Error");
@@ -52,6 +53,7 @@ extern void errx_type_sel4(void *p, char *out, size_t len) {
 static const char *error_strings_generic[] = _ERRX_GENERIC_STRINGS;
 
 extern void errx_type_generic(void *p, char *out, size_t len) {
+    out = strblitadv(out, &len, "\nTraceback (innermost frame first):\n\t");
     struct errx_status *errx_status = (struct errx_status *) p;
     if (errx_status->extra >= sizeof(error_strings_generic) / sizeof(*error_strings_generic)) {
         out = strblitadv(out, &len, "Unknown Generic Error");
@@ -63,7 +65,7 @@ extern void errx_type_generic(void *p, char *out, size_t len) {
 
 extern void errx_concat_traceback(struct errx_status *errx_status, char *out, size_t len) {
     if (errx_status->traceback_next > 0) {
-        out = strblitadv(out, &len, "\nTraceback (most recent call last):\n\t");
+        out = strblitadv(out, &len, "\n\t");
         for (int i = 0; i < errx_status->traceback_next; i++) {
             out = strblitadv(out, &len, errx_status->traceback_elems[i]);
             out = strblitadv(out, &len, "\n\t");

@@ -4,6 +4,7 @@
 #include <sel4/errors.h>
 #include "types.h"
 #include "assert.h"
+#include "debug.h"
 
 #define ERRX_DEFAULT_DESC_BUF_LEN 1024
 #define ERRX_TRACEBACK_DEPTH 64
@@ -42,7 +43,7 @@ extern void errx_type_generic(void *errx_status, char *description_out, size_t d
 
 #define ERRX_START assert(errx.type == errx_type_none)
 #define ERRX_IFERR if (errx.type != errx_type_none)
-#define ERRX_DISPLAY(dfunc) { char _errx_local_buff[ERRX_DEFAULT_DESC_BUF_LEN]; errx.type(&errx, _errx_local_buff, ERRX_DEFAULT_DESC_BUF_LEN); dfunc(_errx_local_buff); }
+#define ERRX_TRACEBACK { char _errx_local_buff[ERRX_DEFAULT_DESC_BUF_LEN]; ERRX_TRACEPOINT; errx.type(&errx, _errx_local_buff, ERRX_DEFAULT_DESC_BUF_LEN); debug_println(_errx_local_buff); }
 #define ERRX_CONSUME { errx.type = errx_type_none; errx.traceback_next = 0; }
 #define ERRX_ASSERT { ERRX_IFERR { ERRX_DISPLAY(fail); } }
 #define _ERRX_TRACEPOINT(file, line) {\

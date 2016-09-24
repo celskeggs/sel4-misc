@@ -36,25 +36,30 @@ void premain(seL4_BootInfo *bi) {
 
     mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE, bi->ipcBuffer, bi);
     if (!cslot_setup(seL4_CapInitThreadCNode, bi->empty.start, bi->empty.end)) {
-        ERRX_DISPLAY(fail);
+        ERRX_TRACEBACK;
+        fail("end");
     }
 
     if (!untyped_add_boot_memory(bi)) {
-        ERRX_DISPLAY(fail);
+        ERRX_TRACEBACK;
+        fail("end");
     }
 
     if (!serial_init(seL4_CapIOPort, seL4_CapIRQControl, NULL)) {
-        ERRX_DISPLAY(fail);
+        ERRX_TRACEBACK;
+        fail("end");
     }
 
     if (!mem_fx_init()) {
-        ERRX_DISPLAY(fail);
+        ERRX_TRACEBACK;
+        fail("end");
     }
 
     ERRX_START;
 
     if (!main()) {
-        ERRX_DISPLAY(fail);
+        ERRX_TRACEBACK;
+        fail("end");
     } else {
         ERRX_START;
     }

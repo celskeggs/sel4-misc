@@ -18,22 +18,6 @@ struct s_4k {
     struct s_4k *next;
 };
 
-static bool untyped_split(seL4_Untyped ut, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
-    assert(ut != seL4_CapNull);
-    assert(slot != seL4_CapNull);
-    // this implementation is specific to creating untypeds because of weirdness around size_bits handling in the kernel
-    while (num_objects > CONFIG_RETYPE_FAN_OUT_LIMIT) {
-        bool success = cslot_retype(ut, seL4_UntypedObject, offset, size_bits, slot, CONFIG_RETYPE_FAN_OUT_LIMIT);
-        if (!success) {
-            return false; // TODO: better cleanup
-        }
-        num_objects -= CONFIG_RETYPE_FAN_OUT_LIMIT;
-        slot += CONFIG_RETYPE_FAN_OUT_LIMIT;
-        offset += (1U << size_bits) * CONFIG_RETYPE_FAN_OUT_LIMIT;
-    }
-    return cslot_retype(ut, seL4_UntypedObject, offset, size_bits, slot, num_objects);
-}
-
 #define CACHE_4K_COUNT 4 // todo: decide on this empirically
 static struct s_4m *avail_4ms = NULL;
 static struct s_4k *avail_4ks = NULL;
@@ -41,9 +25,16 @@ static uintptr_t avail_4ks_count = 0; // reflects the length of avail_4ks
 
 // =================== 4M CHUNKS ===================
 
-static bool untyped_add_memory_4m(seL4_Untyped ut, seL4_CPtr aux) {
+static bool untyped_add_memory_4m(seL4_Untyped ut) {
+    seL4_CPtr aux = cslot_alloc();
+    if (aux == seL4_CapNull) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
     struct s_4m *node = mem_fx_alloc(sizeof(struct s_4m));
     if (node == NULL) {
+        cslot_free(aux);
+        ERRX_TRACEPOINT;
         return false;
     }
     node->ut = ut;
@@ -86,9 +77,16 @@ void untyped_free_4m(untyped_4m_ref mem) {
 
 // =================== 4K CHUNKS ===================
 
-static bool untyped_add_memory_4k(seL4_Untyped ut, seL4_CPtr aux) {
+static bool untyped_add_memory_4k(seL4_Untyped ut) {
+    seL4_CPtr aux = cslot_alloc();
+    if (aux == seL4_CapNull) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
     struct s_4k *node = mem_fx_alloc(sizeof(struct s_4k));
     if (node == NULL) {
+        cslot_free(aux);
+        ERRX_TRACEPOINT;
         return false;
     }
     node->ut = ut;
@@ -115,25 +113,21 @@ untyped_4k_ref untyped_allocate_4k(void) {
         }
         seL4_Untyped larger_ut = untyped_ptr_4m(larger);
 
-        uint32_t caps_needed = 1U << (BITS_4MIB - BITS_4KIB);
-        seL4_CPtr slots = cslot_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
-        if (slots == seL4_CapNull) {
-            ERRX_TRACEPOINT;
-            return NULL;
-        }
-        bool success = untyped_split(larger_ut, 0, BITS_4KIB, slots, caps_needed);
-        if (!success) {
-            ERRX_TRACEPOINT;
-            return NULL;
-        } else {
-            for (uint32_t i = 0; i < caps_needed; i++) {
-                // NOTE: might recurse back to this allocator!
-                success = untyped_add_memory_4k(slots + i, slots + caps_needed + i);
-                if (!success) {
-                    // note: we aren't cleaning up properly here... TODO do that.
-                    ERRX_TRACEPOINT;
-                    return NULL;
-                }
+        assert(larger_ut != seL4_CapNull);
+        for (uint32_t i = 0; i < 1U << (BITS_4MIB - BITS_4KIB); i++) {
+            seL4_CPtr slot = cslot_alloc();
+            if (slot == seL4_CapNull) {
+                ERRX_TRACEPOINT;
+                return false;
+            }
+            if (!cslot_retype(larger_ut, seL4_UntypedObject, i << BITS_4KIB, BITS_4KIB, slot, 1)) {
+                ERRX_TRACEPOINT;
+                return false; // TODO: better cleanup (?)
+            }
+            // NOTE: might recurse back to this allocator!
+            if (!untyped_add_memory_4k(slot)) {
+                ERRX_TRACEPOINT;
+                return false;
             }
         }
         refill_running = false;
@@ -176,63 +170,45 @@ void untyped_free_4k(untyped_4k_ref mem) {
 // if this fails, data structures may be corrupted. see below for reasons.
 bool untyped_add_memory(seL4_Untyped ut, int size_bits) {
     if (size_bits > BITS_4MIB) {
-        uint32_t caps_needed = 1U << (size_bits - BITS_4MIB);
-        seL4_CPtr slots = cslot_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
-        if (slots == seL4_CapNull) {
-            ERRX_TRACEPOINT;
-            return false;
-        }
-        bool success = untyped_split(ut, 0, BITS_4MIB, slots, caps_needed);
-        if (!success) {
-            ERRX_TRACEPOINT;
-            return false;
-        }
-        for (uint32_t i = 0; i < caps_needed; i++) {
-            success = untyped_add_memory_4m(slots + i, slots + caps_needed + i);
-            if (!success) {
-                // note: we aren't cleaning up properly here... TODO do that.
-                // since this is part of the initialization process, it should be ""okay"" - we'll just crash the system
+        assert(ut != seL4_CapNull);
+        for (uint32_t i = 0; i < 1U << (size_bits - BITS_4MIB); i++) {
+            seL4_CPtr slot = cslot_alloc();
+            if (slot == seL4_CapNull) {
+                ERRX_TRACEPOINT;
+                return false;
+            }
+            if (!cslot_retype(ut, seL4_UntypedObject, i << BITS_4MIB, BITS_4MIB, slot, 1)) {
+                ERRX_TRACEPOINT;
+                return false; // TODO: better cleanup (?)
+            }
+            if (!untyped_add_memory_4m(slot)) {
                 ERRX_TRACEPOINT;
                 return false;
             }
         }
         return true;
     } else if (size_bits == BITS_4MIB) {
-        seL4_CPtr slot = cslot_alloc();
-        if (slot == seL4_CapNull) {
-            ERRX_TRACEPOINT;
-            return false;
-        }
-        return untyped_add_memory_4m(ut, slot);
+        return untyped_add_memory_4m(ut);
     } else if (size_bits > BITS_4KIB) {
-        uint32_t caps_needed = 1U << (size_bits - BITS_4KIB);
-        seL4_CPtr slots = cslot_alloc_slab(caps_needed * 2); // * 2 so that we have aux slots
-        if (slots == seL4_CapNull) {
-            ERRX_TRACEPOINT;
-            return false;
-        }
-        bool success = untyped_split(ut, 0, BITS_4KIB, slots, caps_needed);
-        if (!success) {
-            ERRX_TRACEPOINT;
-            return false;
-        }
-        for (uint32_t i = 0; i < caps_needed; i++) {
-            success = untyped_add_memory_4k(slots + i, slots + caps_needed + i);
-            if (!success) {
-                // note: we aren't cleaning up properly here... TODO do that.
-                // since this is part of the initialization process, it should be ""okay"" - we'll just crash the system
+        assert(ut != seL4_CapNull);
+        for (uint32_t i = 0; i < 1U << (size_bits - BITS_4KIB); i++) {
+            seL4_CPtr slot = cslot_alloc();
+            if (slot == seL4_CapNull) {
+                ERRX_TRACEPOINT;
+                return false;
+            }
+            if (!cslot_retype(ut, seL4_UntypedObject, i << BITS_4KIB, BITS_4KIB, slot, 1)) {
+                ERRX_TRACEPOINT;
+                return false; // TODO: better cleanup (?)
+            }
+            if (!untyped_add_memory_4k(slot)) {
                 ERRX_TRACEPOINT;
                 return false;
             }
         }
         return true;
     } else if (size_bits == BITS_4KIB) {
-        seL4_CPtr slot = cslot_alloc();
-        if (slot == seL4_CapNull) {
-            ERRX_TRACEPOINT;
-            return false;
-        }
-        return untyped_add_memory_4k(ut, slot);
+        return untyped_add_memory_4k(ut);
     } else {
         assert(size_bits > 0 && size_bits < BITS_4KIB);
         // note: we're wasting these, but it's not very much memory in the big scheme of things
@@ -243,8 +219,7 @@ bool untyped_add_memory(seL4_Untyped ut, int size_bits) {
 bool untyped_add_boot_memory(seL4_BootInfo *info) {
     seL4_Word len = info->untyped.end - info->untyped.start;
     for (seL4_Word i = 0; i < len; i++) {
-        bool success = untyped_add_memory(info->untyped.start + i, info->untypedSizeBitsList[i]);
-        if (!success) {
+        if (!untyped_add_memory(info->untyped.start + i, info->untypedSizeBitsList[i])) {
             ERRX_TRACEPOINT;
             return false;
         }

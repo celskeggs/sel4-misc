@@ -3,6 +3,7 @@
 #include <resource/mem_vspace.h>
 #include <resource/mem_fx.h>
 #include <resource/cslot.h>
+#include <resource/mem_page.h>
 
 #define PAGE_ACCESS_UNINIT 0xFF
 
@@ -10,6 +11,7 @@ struct pd_param {
     bool is_cptr_active;
     seL4_CPtr active_cptr;
     void *target_addr;
+    struct mem_page_cookie cur_cookie;
     struct pagedir *pagedir;
 };
 
@@ -98,11 +100,11 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
     seL4_IA32_Page page = untyped_auxptr_4k(pt->pages[page_offset]);
     seL4_IA32_Page alt = param->active_cptr;
     if (param->is_cptr_active) {
-        mem_page_shared_free(param->target_addr, alt);
+        mem_page_free(&param->cur_cookie);
     }
     assert(cslot_delete(alt) == seL4_NoError);
     assert(cslot_copy(page, alt) == seL4_NoError);
-    if (!mem_page_shared_map(param->target_addr, alt)) {
+    if (!mem_page_shared_map(param->target_addr, alt, &param->cur_cookie)) {
         param->is_cptr_active = false;
         ERRX_TRACEPOINT;
         return false;
@@ -135,7 +137,7 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     }
     bool success = elfparser_load(elf, file_size, remapper, &param, buffer);
     if (param.is_cptr_active) {
-        mem_page_shared_free(buffer, spare_cptr);
+        mem_page_free(&param.cur_cookie);
     }
     cslot_delete(spare_cptr);
     mem_vspace_dealloc_slice(&zone);

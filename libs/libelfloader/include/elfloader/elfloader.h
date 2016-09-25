@@ -14,6 +14,7 @@ struct pagetable {
 struct pagedir {
     seL4_IA32_PageDirectory pd;
     struct pagetable *pts[PAGE_TABLE_COUNT];
+    uintptr_t entry_position;
 };
 
 struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirectory page_dir, seL4_CPtr spare_cptr);

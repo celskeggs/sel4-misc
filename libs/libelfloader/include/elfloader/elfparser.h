@@ -17,6 +17,7 @@ typedef bool (*elfparser_remap_cb)(void *cookie, void *virt_target, uint8_t acce
 // the user must provide a PAGE_SIZE-sized page buffer, and allow using it to access PAGE_SIZE-aligned pages in the target vspace
 // once elfparser_remap_cb is called, the memory should be pointing to the correct location (virt_target) and writeable.
 // the access_flags value should be used AFTER the loading is complete.
-extern bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, void *cookie, void *page_buffer);
+extern bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, void *cookie, void *page_buffer,
+                           uintptr_t *entry_position_out);
 
 #endif //LIB_ELFLOADER_ELFPARSER_H

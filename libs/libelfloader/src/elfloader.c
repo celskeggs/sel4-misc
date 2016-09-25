@@ -135,7 +135,7 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     for (uint32_t i = 0; i < PAGE_TABLE_COUNT; i++) {
         pdir->pts[i] = NULL;
     }
-    bool success = elfparser_load(elf, file_size, remapper, &param, buffer);
+    bool success = elfparser_load(elf, file_size, remapper, &param, buffer, &pdir->entry_position);
     if (param.is_cptr_active) {
         mem_page_free(&param.cur_cookie);
     }

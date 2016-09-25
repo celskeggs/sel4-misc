@@ -47,12 +47,18 @@ static bool copy_via_remapper(void *source, size_t length, void *virt_target, el
 }
 
 // TODO: this code needs VERY CLOSE SCRUTINY. it is a clear attack surface, and must be protected well.
-bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, void *cookie, void *page_buffer) {
+bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, void *cookie, void *page_buffer,
+                    uintptr_t *entry_position_out) {
+    assert(elf != NULL && remapper != NULL && cookie != NULL && page_buffer != NULL && entry_position_out != NULL);
     uint8_t *head = (uint8_t *) elf;
     uint8_t *end = elf + file_size;
     assert(end > head);
 #define H16(n) (*(uint16_t *) (head + n))
 #define H32(n) (*(uint32_t *) (head + n))
+    if (file_size < 32) {
+        ERRX_RAISE_GENERIC(GERR_MALFORMED_DATA);
+        return false;
+    }
     if (head[0] != 0x7F || head[1] != 'E' || head[2] != 'L' || head[3] != 'F') {
         ERRX_RAISE_GENERIC(GERR_INVALID_MAGIC);
         return false;
@@ -65,7 +71,7 @@ bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, vo
         ERRX_RAISE_GENERIC(GERR_UNSUPPORTED_OPTION);
         return false;
     }
-    uintptr_t entry_position = H32(24); // TODO: return this in some way
+    *entry_position_out = H32(24);
     uint8_t *table_pointer = elf + H32(28);
     if (table_pointer <= head || table_pointer > end) {
         ERRX_RAISE_GENERIC(GERR_MALFORMED_DATA);

@@ -201,6 +201,38 @@ bool cslot_copy(seL4_CPtr from, seL4_CPtr to) {
     }
 }
 
+bool cslot_copy_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth) {
+    int err = seL4_CNode_Copy(to_node, to, to_depth, c_root_cnode, from, 32, seL4_AllRights);
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
+}
+
+bool cslot_mint(seL4_CPtr from, seL4_CPtr to, uint32_t badge) {
+    int err = seL4_CNode_Mint(c_root_cnode, to, 32, c_root_cnode, from, 32, seL4_AllRights,
+                              seL4_CapData_Badge_new(badge));
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
+}
+
+bool cslot_mint_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth, uint32_t badge) {
+    int err = seL4_CNode_Mint(to_node, to, to_depth, c_root_cnode, from, 32, seL4_AllRights,
+                              seL4_CapData_Badge_new(badge));
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
+}
+
 bool cslot_revoke(seL4_CPtr ptr) {
     int err = seL4_CNode_Revoke(c_root_cnode, ptr, 32);
     if (err == seL4_NoError) {

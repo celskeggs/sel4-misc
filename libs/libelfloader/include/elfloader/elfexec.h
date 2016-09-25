@@ -11,7 +11,8 @@ struct elfexec {
     untyped_4k_ref page_directory;
 };
 
-bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority);
+bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority,
+                  seL4_CPtr io_ep, uint32_t io_badge);
 
 void elfexec_destroy(struct elfexec *holder);
 

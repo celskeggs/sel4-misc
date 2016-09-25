@@ -18,6 +18,12 @@ bool cslot_delete(seL4_CPtr ptr);
 
 bool cslot_copy(seL4_CPtr from, seL4_CPtr to);
 
+bool cslot_copy_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth);
+
+bool cslot_mint(seL4_CPtr from, seL4_CPtr to, uint32_t badge);
+
+bool cslot_mint_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth, uint32_t badge);
+
 bool cslot_revoke(seL4_CPtr ptr);
 
 bool cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects);

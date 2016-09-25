@@ -161,23 +161,27 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     cslot_free(spare_cptr);
     mem_vspace_dealloc_slice(&zone);
     if (!success) {
-        for (uint32_t i = 0; i < PAGE_TABLE_COUNT; i++) {
-            struct pagetable *pt = param.pagedir->pts[i];
-            if (pt != NULL) {
-                for (uint32_t j = 0; j < PAGE_COUNT_PER_TABLE; j++) {
-                    if (pt->pages[j] != NULL) {
-                        untyped_free_4k(pt->pages[j]);
-                        pt->pages[j] = NULL;
-                    }
-                }
-                untyped_free_4k(pt->pt);
-            }
-            mem_fx_free(pt, sizeof(struct pagetable));
-            param.pagedir->pts[i] = NULL;
-        }
-        mem_fx_free(param.pagedir, sizeof(struct pagedir));
+        elfloader_unload(param.pagedir);
         ERRX_TRACEPOINT;
         return NULL;
     }
     return param.pagedir;
+}
+
+void elfloader_unload(struct pagedir *pd) {
+    for (uint32_t i = 0; i < PAGE_TABLE_COUNT; i++) {
+        struct pagetable *pt = pd->pts[i];
+        if (pt != NULL) {
+            for (uint32_t j = 0; j < PAGE_COUNT_PER_TABLE; j++) {
+                if (pt->pages[j] != NULL) {
+                    untyped_free_4k(pt->pages[j]);
+                    pt->pages[j] = NULL;
+                }
+            }
+            untyped_free_4k(pt->pt);
+        }
+        mem_fx_free(pt, sizeof(struct pagetable));
+        pd->pts[i] = NULL;
+    }
+    mem_fx_free(pd, sizeof(struct pagedir));
 }

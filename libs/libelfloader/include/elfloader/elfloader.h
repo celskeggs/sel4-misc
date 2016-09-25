@@ -19,5 +19,6 @@ struct pagedir {
 
 struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirectory page_dir);
 seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uint8_t access_flags, bool exclusive);
+void elfloader_unload(struct pagedir *pd);
 
 #endif //LIB_ELFLOADER_ELFLOADER_H

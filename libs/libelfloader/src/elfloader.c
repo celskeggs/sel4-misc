@@ -15,10 +15,10 @@ struct pd_param {
     struct pagedir *pagedir;
 };
 
-static struct pagetable *get_pagetable(struct pd_param *pdp, void *virtual_address) {
+static struct pagetable *get_pagetable(struct pagedir *pd, void *virtual_address) {
     uintptr_t page_table_id = ((uintptr_t) virtual_address) >> seL4_PageTableBits;
     assert(page_table_id < PAGE_TABLE_COUNT);
-    struct pagetable *pt = pdp->pagedir->pts[page_table_id];
+    struct pagetable *pt = pd->pts[page_table_id];
     if (pt != NULL) {
         return pt;
     }
@@ -40,8 +40,8 @@ static struct pagetable *get_pagetable(struct pd_param *pdp, void *virtual_addre
         ERRX_TRACEPOINT;
         return NULL;
     }
-    int err = seL4_IA32_PageTable_Map(table, pdp->pagedir->pd, page_table_id * PAGE_TABLE_SIZE,
-                                               seL4_IA32_Default_VMAttributes);
+    int err = seL4_IA32_PageTable_Map(table, pd->pd, page_table_id * PAGE_TABLE_SIZE,
+                                      seL4_IA32_Default_VMAttributes);
     if (err != seL4_NoError) {
         untyped_free_4k(pt->pt);
         mem_fx_free(pt, sizeof(struct pagetable));
@@ -52,17 +52,15 @@ static struct pagetable *get_pagetable(struct pd_param *pdp, void *virtual_addre
         pt->pages[i] = NULL;
         pt->page_accesses[i] = PAGE_ACCESS_UNINIT;
     }
-    pdp->pagedir->pts[page_table_id] = pt;
+    pd->pts[page_table_id] = pt;
     return pt;
 }
 
-static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) {
-    struct pd_param *param = (struct pd_param *) cookie;
-    assert(param != NULL);
-    struct pagetable *pt = get_pagetable(param, virtual_address);
+seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uint8_t access_flags, bool exclusive) {
+    struct pagetable *pt = get_pagetable(pd, virtual_address);
     if (pt == NULL) {
         ERRX_TRACEPOINT;
-        return false;
+        return seL4_CapNull;
     }
     uint32_t page_offset = (((uintptr_t) virtual_address) >> seL4_PageBits) & (PAGE_COUNT_PER_TABLE - 1);
     assert(page_offset < PAGE_COUNT_PER_TABLE);
@@ -71,33 +69,47 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
         untyped_4k_ref ut = untyped_allocate_4k();
         if (ut == NULL) {
             ERRX_TRACEPOINT;
-            return false;
+            return seL4_CapNull;
         }
         if (!cslot_retype(untyped_ptr_4k(ut), seL4_IA32_4K, 0, 0, untyped_auxptr_4k(ut), 1)) {
             untyped_free_4k(ut);
             ERRX_TRACEPOINT;
-            return false;
+            return seL4_CapNull;
         }
         seL4_CapRights rights = (seL4_CapRights) (((access_flags & ELF_MEM_WRITABLE) ? seL4_CanWrite : 0) |
                                                   ((access_flags & (ELF_MEM_READABLE | ELF_MEM_EXECUTABLE))
-                                                   ? seL4_CanRead
-                                                   : 0));
-        int err = seL4_IA32_Page_Map(untyped_auxptr_4k(ut), param->pagedir->pd, (uintptr_t) virtual_address,
-                                              rights, seL4_IA32_Default_VMAttributes);
+                                                   ? seL4_CanRead : 0));
+        int err = seL4_IA32_Page_Map(untyped_auxptr_4k(ut), pd->pd, (uintptr_t) virtual_address, rights,
+                                     seL4_IA32_Default_VMAttributes);
         if (err != seL4_NoError) {
             untyped_free_4k(ut);
             ERRX_RAISE_SEL4(err);
-            return false;
+            return seL4_CapNull;
         }
         pt->pages[page_offset] = ut;
         pt->page_accesses[page_offset] = access_flags;
     } else {
         // EXISTING PAGE
-        if (pt->page_accesses[page_offset] != access_flags) {
-            return seL4_RevokeFirst; // won't let loader load two different access_flags
+        if (exclusive) {
+            ERRX_RAISE_GENERIC(GERR_UNSATISFIED_CONSTRAINT);
+            return seL4_CapNull;
+        } else if (pt->page_accesses[page_offset] != access_flags) {
+            // won't let loader load two different access_flags
+            ERRX_RAISE_GENERIC(GERR_ACCESS_VIOLATION);
+            return seL4_CapNull;
         }
     }
-    seL4_IA32_Page page = untyped_auxptr_4k(pt->pages[page_offset]);
+    return untyped_auxptr_4k(pt->pages[page_offset]);
+}
+
+static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) {
+    struct pd_param *param = (struct pd_param *) cookie;
+    assert(param != NULL);
+    seL4_IA32_Page page = elfloader_get_page(param->pagedir, virtual_address, access_flags, false);
+    if (page == seL4_CapNull) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
     seL4_IA32_Page alt = param->active_cptr;
     if (param->is_cptr_active) {
         mem_page_free(&param->cur_cookie);
@@ -114,7 +126,7 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
     }
 }
 
-struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirectory page_dir, seL4_CPtr spare_cptr) {
+struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirectory page_dir) {
     struct mem_vspace zone;
     size_t actual_size = mem_vspace_alloc_slice(&zone, PAGE_SIZE * 2);
     if (actual_size == 0) {
@@ -130,6 +142,12 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
         ERRX_TRACEPOINT;
         return NULL;
     }
+    seL4_CPtr spare_cptr = cslot_alloc();
+    if (spare_cptr == seL4_CapNull) {
+        mem_fx_free(pdir, sizeof(struct pagedir));
+        mem_vspace_dealloc_slice(&zone);
+        return NULL;
+    }
     pdir->pd = page_dir;
     struct pd_param param = {.pagedir = pdir, .target_addr = buffer, .active_cptr = spare_cptr, .is_cptr_active = false};
     for (uint32_t i = 0; i < PAGE_TABLE_COUNT; i++) {
@@ -140,6 +158,7 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
         mem_page_free(&param.cur_cookie);
     }
     cslot_delete(spare_cptr);
+    cslot_free(spare_cptr);
     mem_vspace_dealloc_slice(&zone);
     if (!success) {
         for (uint32_t i = 0; i < PAGE_TABLE_COUNT; i++) {

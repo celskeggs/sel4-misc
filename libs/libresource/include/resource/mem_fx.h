@@ -1,5 +1,5 @@
-#ifndef SEL4_MISC_MEM_FX_H
-#define SEL4_MISC_MEM_FX_H
+#ifndef LIB_RESOURCE_MEM_FX_H
+#define LIB_RESOURCE_MEM_FX_H
 
 #include <bedrock/bedrock.h>
 #include <bedrock/errx.h> // this module uses errx
@@ -17,4 +17,4 @@ void mem_fx_free(void *data, size_t size);
 // used by untyped.c to know when it should avoid calling allocations (to avoid recursion)
 bool mem_fx_is_allocating(void);
 
-#endif //SEL4_MISC_MEM_FX_H
+#endif //LIB_RESOURCE_MEM_FX_H

@@ -1,5 +1,5 @@
-#ifndef SEL4_MISC_MEM_FXALLOC_H
-#define SEL4_MISC_MEM_FXALLOC_H
+#ifndef LIB_RESOURCE_MEM_FXALLOC_H
+#define LIB_RESOURCE_MEM_FXALLOC_H
 
 #include <bedrock/errx.h> // this module uses errx
 #include "mem_vspace.h"
@@ -42,4 +42,4 @@ void *mem_fxalloc_alloc(struct mem_fxalloc *fxalloc, size_t size);
 
 void mem_fxalloc_destroy(struct mem_fxalloc *fxalloc);
 
-#endif //SEL4_MISC_MEM_FXALLOC_H
+#endif //LIB_RESOURCE_MEM_FXALLOC_H

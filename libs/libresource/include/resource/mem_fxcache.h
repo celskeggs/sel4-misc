@@ -1,5 +1,5 @@
-#ifndef SEL4_MISC_MEM_FXCACHE_H
-#define SEL4_MISC_MEM_FXCACHE_H
+#ifndef LIB_RESOURCE_MEM_FXCACHE_H
+#define LIB_RESOURCE_MEM_FXCACHE_H
 
 #include <bedrock/bedrock.h>
 
@@ -27,4 +27,4 @@ void mem_fxcache_insert(struct mem_fxcache *cache, void *ptr, size_t size);
 
 void *mem_fxcache_query(struct mem_fxcache *cache, size_t size);
 
-#endif //SEL4_MISC_MEM_FXCACHE_H
+#endif //LIB_RESOURCE_MEM_FXCACHE_H

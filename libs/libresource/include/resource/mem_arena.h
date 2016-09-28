@@ -1,5 +1,5 @@
-#ifndef SEL4_MISC_MEM_ARENA_H
-#define SEL4_MISC_MEM_ARENA_H
+#ifndef LIB_RESOURCE_MEM_ARENA_H
+#define LIB_RESOURCE_MEM_ARENA_H
 
 #include <bedrock/errx.h> // this module uses errx
 #include "mem_vspace.h"
@@ -19,4 +19,4 @@ static inline size_t mem_arena_size(struct mem_arena *arena) {
 }
 void mem_arena_deallocate(struct mem_arena *arena);
 
-#endif //SEL4_MISC_MEM_ARENA_H
+#endif //LIB_RESOURCE_MEM_ARENA_H

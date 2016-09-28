@@ -1,5 +1,5 @@
-#ifndef SEL4_MISC_CSLOT_AO_H
-#define SEL4_MISC_CSLOT_AO_H
+#ifndef LIB_RESOURCE_CSLOT_AO_H
+#define LIB_RESOURCE_CSLOT_AO_H
 
 #include <bedrock/bedrock.h>
 #include <bedrock/errx.h> // this module uses errx
@@ -30,4 +30,4 @@ bool cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPt
 
 bool cslot_irqget(seL4_IRQControl ctrl, int irq, seL4_CPtr slot);
 
-#endif //SEL4_MISC_CSLOT_AO_H
+#endif //LIB_RESOURCE_CSLOT_AO_H

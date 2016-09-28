@@ -1,5 +1,5 @@
-#ifndef SEL4_MISC_MEM_FXSEQ_H
-#define SEL4_MISC_MEM_FXSEQ_H
+#ifndef LIB_RESOURCE_MEM_FXSEQ_H
+#define LIB_RESOURCE_MEM_FXSEQ_H
 
 #include <bedrock/errx.h> // this module uses errx
 #include "mem_page.h"
@@ -26,4 +26,4 @@ bool mem_fxseq_init(struct mem_fxseq *fxseq);
 
 void *mem_fxseq_alloc(struct mem_fxseq *fxseq, size_t size);
 
-#endif //SEL4_MISC_MEM_FXSEQ_H
+#endif //LIB_RESOURCE_MEM_FXSEQ_H

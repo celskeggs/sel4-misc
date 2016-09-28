@@ -1,5 +1,5 @@
-#ifndef SEL4_MISC_MEM_VSPACE_H
-#define SEL4_MISC_MEM_VSPACE_H
+#ifndef LIB_RESOURCE_MEM_VSPACE_H
+#define LIB_RESOURCE_MEM_VSPACE_H
 
 #include <bedrock/types.h>
 #include <bedrock/errx.h> // this module uses errx
@@ -32,4 +32,4 @@ static inline size_t mem_vspace_size(struct mem_vspace *zone) {
 
 void mem_vspace_dealloc_slice(struct mem_vspace *zone);
 
-#endif //SEL4_MISC_MEM_VSPACE_H
+#endif //LIB_RESOURCE_MEM_VSPACE_H

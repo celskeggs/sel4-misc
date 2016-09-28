@@ -1,5 +1,5 @@
-#ifndef SEL4_MISC_UNTYPED_H
-#define SEL4_MISC_UNTYPED_H
+#ifndef LIB_RESOURCE_UNTYPED_H
+#define LIB_RESOURCE_UNTYPED_H
 
 #include <bedrock/bedrock.h>
 #include <bedrock/errx.h> // this module uses errx
@@ -44,4 +44,4 @@ seL4_CPtr untyped_auxptr_4k(untyped_4k_ref mem);
 
 void untyped_free_4k(untyped_4k_ref mem);
 
-#endif //SEL4_MISC_UNTYPED_MACRO_H
+#endif //LIB_RESOURCE_UNTYPED_MACRO_H

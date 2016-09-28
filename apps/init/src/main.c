@@ -1,5 +1,6 @@
 #include <sel4/sel4.h>
 #include "serial.h"
+#include <elfloader/elfexec.h>
 #include <resource/cslot.h>
 #include <resource/untyped.h>
 #include <resource/mem_page.h>
@@ -22,7 +23,14 @@ bool main(void) {
     if (!serial_write(image_helloworld, 32)) {
         return false;
     }
-    serial_wait_ready();
+    // serial_wait_ready();
+    struct elfexec context;
+    if (!elfexec_init(image_helloworld, image_helloworld_end - image_helloworld, &context, seL4_CapNull, 255, seL4_CapNull, 0)) {
+        return false;
+    }
+    if (!elfexec_start(&context)) {
+        return false;
+    }
     return true;
 }
 

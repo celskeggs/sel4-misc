@@ -7,4 +7,5 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/helloworld_bin.c
 add_executable(init src/main.c src/serial.c src/serial.h ${CMAKE_CURRENT_BINARY_DIR}/helloworld_bin.c)
 target_link_libraries(init bedrock)
 target_link_libraries(init resource)
+target_link_libraries(init elfloader)
 install(TARGETS init DESTINATION images)

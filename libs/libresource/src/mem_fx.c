@@ -28,6 +28,10 @@ static inline size_t round_size(size_t size) {
 }
 
 void *mem_fx_alloc(size_t size) {
+    if (size > FXCACHE_MAX) {
+        ERRX_RAISE_GENERIC(GERR_REQUEST_TOO_LARGE);
+        return false;
+    }
     assert(!is_allocating);
     is_allocating = true;
     size = round_size(size);

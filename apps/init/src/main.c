@@ -6,25 +6,24 @@
 #include <resource/mem_vspace.h>
 #include <resource/mem_fx.h>
 
+extern char *image_helloworld;
+extern char *image_helloworld_end;
+
 bool main(void) {
     const char *source = "Hello, serial world Nth!\n";
     char *buf = mem_fx_alloc(64);
     if (buf == NULL) {
         return false;
     }
-    char *dest = buf;
-    do {
-        *dest++ = *source;
-    } while (*source++);
+    memcpy(buf, source, strlen(source));
     if (!serial_write(buf, (size_t) strlen(buf))) {
         return false;
     }
-    serial_wait_ready();
-    int i = 1000000000;
-    while (i-- > 0) {
-        asm("nop");
+    if (!serial_write(image_helloworld, 32)) {
+        return false;
     }
-    return serial_write(buf, (size_t) strlen(buf));
+    serial_wait_ready();
+    return true;
 }
 
 extern char __executable_start;

@@ -30,6 +30,7 @@ static bool copy_via_remapper(void *source, size_t length, void *virt_target, el
         uint16_t page_offset = (uint16_t) (((uintptr_t) virt_target) & PAGE_MASK);
         void *page_base = (void *) ((uintptr_t) virt_target & PAGE_UNMASK);
         if (!remapper(cookie, page_base, access_flags)) {
+            ERRX_TRACEPOINT;
             return false;
         }
         size_t copy_len = PAGE_SIZE - page_offset;
@@ -94,22 +95,24 @@ bool elfparser_load(void *elf, size_t file_size, elfparser_remap_cb remapper, vo
         if (phdr_type != PHDR_LOAD) {
             continue; // ignore this entry
         }
+        assert(stored_size <= memory_size);
         if (stored_size > 0) {
-            if (memory_size > stored_size) {
-                stored_size = memory_size;
-            }
             uint8_t *read_source = file_offset + elf;
             uint8_t *read_end = read_source + stored_size;
             assert(read_end > read_source);
             assert(read_source >= head && read_end <= end);
             if (!copy_via_remapper(read_source, stored_size, (void *) virtual_address, remapper, cookie, page_buffer,
                                    (uint8_t) (flags & ELF_MEM_FLAGS))) {
+                ERRX_TRACEPOINT;
                 return false;
             }
         }
+        uint32_t alignment_correction = virtual_address & (PAGE_SIZE - 1);
         // make sure that we've loaded enough pages for the rest, as well
-        for (uint32_t offset = 0; i < memory_size; i += PAGE_SIZE) {
-            if (!remapper(cookie, (void *) virtual_address + offset, (uint8_t) (flags & ELF_MEM_FLAGS))) {
+        for (uint32_t offset = 0; offset < memory_size + alignment_correction; offset += PAGE_SIZE) {
+            if (!remapper(cookie, (void *) virtual_address + offset - alignment_correction,
+                          (uint8_t) (flags & ELF_MEM_FLAGS))) {
+                ERRX_TRACEPOINT;
                 return false;
             }
         }

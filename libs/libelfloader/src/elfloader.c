@@ -56,6 +56,7 @@ static struct pagetable *get_pagetable(struct pagedir *pd, void *virtual_address
 }
 
 seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uint8_t access_flags, bool exclusive) {
+    assert(((uintptr_t) virtual_address & (PAGE_SIZE - 1)) == 0);
     struct pagetable *pt = get_pagetable(pd, virtual_address);
     if (pt == NULL) {
         ERRX_TRACEPOINT;
@@ -102,6 +103,7 @@ seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uin
 }
 
 static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) {
+    assert(((uintptr_t) virtual_address & (PAGE_SIZE - 1)) == 0);
     struct pd_param *param = (struct pd_param *) cookie;
     assert(param != NULL);
     seL4_IA32_Page page = elfloader_get_page(param->pagedir, virtual_address, access_flags, false);

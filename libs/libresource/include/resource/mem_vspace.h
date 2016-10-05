@@ -22,6 +22,10 @@ void mem_vspace_setup(size_t image_size, void *ipc_buffer, void *boot_buffer);
 // result is actual allocated size
 size_t mem_vspace_alloc_slice(struct mem_vspace *zone, size_t approximate_size);
 
+// a less efficient version with a precise allocation size - well, when rounded to a page.
+// DO NOT USE THIS VSPACE ALLOCATION API TO HANDLE INDIVIDUAL ALLOCATIONS. ONLY WORK WITH BLOCKS.
+size_t mem_vspace_alloc_slice_spec(struct mem_vspace *zone, size_t precise_size);
+
 static inline void *mem_vspace_ptr(struct mem_vspace *zone) {
     return zone->alloc_begin;
 }

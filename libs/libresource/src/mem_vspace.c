@@ -118,6 +118,42 @@ size_t mem_vspace_alloc_slice(struct mem_vspace *zone, size_t approximate_size) 
     return real_size;
 }
 
+// uses an O(n) algorithm - don't use this often or with small blocks
+size_t mem_vspace_alloc_slice_spec(struct mem_vspace *zone, size_t precise_size) {
+    struct mem_vspace *cur = &root_zone;
+    struct mem_vspace *smallest_block = NULL;
+    size_t smallest_size = 0;
+    // we should be at the beginning
+    assert(cur->prev == NULL);
+    // let's scan through for an empty block that we don't need to subdivide
+    // but also find the smallest available block that's too big
+    while (cur != NULL) {
+        size_t size = get_free_size(cur);
+        if (size == precise_size) {
+            // good enough for us! use it.
+            slice_entire_node(cur, zone);
+            size_t real_size = mem_vspace_size(zone);
+            assert(real_size == size);
+            return real_size;
+        } else if (size > precise_size) {
+            // too big - but we might need this if we have to subdivide
+            if (smallest_block == NULL || size < smallest_size) {
+                smallest_block = cur;
+                smallest_size = size;
+            }
+        }
+        cur = cur->next;
+    }
+    if (smallest_block == NULL) {
+        ERRX_RAISE_GENERIC(GERR_MEMORY_POOL_EXHAUSTED);
+        return 0; // nothing is available with enough room
+    }
+    slice_partial_node(smallest_block, precise_size, zone);
+    size_t real_size = mem_vspace_size(zone);
+    assert(real_size == precise_size);
+    return real_size;
+}
+
 void mem_vspace_dealloc_slice(struct mem_vspace *zone) {
     assert(zone->prev != NULL); // otherwise, somehow we're deallocating the root! I think...
     zone->prev->next = zone->next;

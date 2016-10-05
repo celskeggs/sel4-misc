@@ -1,5 +1,4 @@
 #include <bedrock/bedrock.h>
-#include <elfloader/elfcontext.h>
 #include <resource/mem_vspace.h>
 #include <resource/cslot.h>
 #include <init/init.h>

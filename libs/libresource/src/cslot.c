@@ -182,6 +182,10 @@ seL4_CPtr cslot_alloc_slab(uint32_t count) {
 }
 
 bool cslot_delete(seL4_CPtr ptr) {
+    if (ptr == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
     int err = seL4_CNode_Delete(c_root_cnode, ptr, 32);
     if (err == seL4_NoError) {
         return true;
@@ -192,6 +196,10 @@ bool cslot_delete(seL4_CPtr ptr) {
 }
 
 bool cslot_copy(seL4_CPtr from, seL4_CPtr to) {
+    if (from == seL4_CapNull || to == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
     int err = seL4_CNode_Copy(c_root_cnode, to, 32, c_root_cnode, from, 32, seL4_AllRights);
     if (err == seL4_NoError) {
         return true;
@@ -202,6 +210,11 @@ bool cslot_copy(seL4_CPtr from, seL4_CPtr to) {
 }
 
 bool cslot_copy_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth) {
+    if (from == seL4_CapNull || to_node == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
+    // note: if you get "Target slot invalid" (via debug message) and "FailedLookup" through interface, check bit depth.
     int err = seL4_CNode_Copy(to_node, to, to_depth, c_root_cnode, from, 32, seL4_AllRights);
     if (err == seL4_NoError) {
         return true;
@@ -212,6 +225,10 @@ bool cslot_copy_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to
 }
 
 bool cslot_mint(seL4_CPtr from, seL4_CPtr to, uint32_t badge) {
+    if (from == seL4_CapNull || to == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
     int err = seL4_CNode_Mint(c_root_cnode, to, 32, c_root_cnode, from, 32, seL4_AllRights,
                               seL4_CapData_Badge_new(badge));
     if (err == seL4_NoError) {
@@ -223,6 +240,10 @@ bool cslot_mint(seL4_CPtr from, seL4_CPtr to, uint32_t badge) {
 }
 
 bool cslot_mint_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth, uint32_t badge) {
+    if (from == seL4_CapNull || to_node == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
     int err = seL4_CNode_Mint(to_node, to, to_depth, c_root_cnode, from, 32, seL4_AllRights,
                               seL4_CapData_Badge_new(badge));
     if (err == seL4_NoError) {
@@ -234,6 +255,10 @@ bool cslot_mint_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to
 }
 
 bool cslot_revoke(seL4_CPtr ptr) {
+    if (ptr == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
     int err = seL4_CNode_Revoke(c_root_cnode, ptr, 32);
     if (err == seL4_NoError) {
         return true;
@@ -244,6 +269,10 @@ bool cslot_revoke(seL4_CPtr ptr) {
 }
 
 bool cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
+    if (ut == seL4_CapNull || slot == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
     int err = seL4_Untyped_RetypeAtOffset(ut, type, offset, size_bits, c_root_cnode, 0, 0, slot, num_objects);
     if (err == seL4_NoError) {
         return true;
@@ -254,6 +283,10 @@ bool cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPt
 }
 
 bool cslot_irqget(seL4_IRQControl ctrl, int irq, seL4_CPtr slot) {
+    if (ctrl == seL4_CapNull || slot == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
     int err = seL4_IRQControl_Get(ctrl, irq, c_root_cnode, slot, 32);
     if (err == seL4_NoError) {
         return true;

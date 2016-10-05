@@ -129,6 +129,7 @@ bool mem_page_valid(struct mem_page_cookie *cookie) {
 
 bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
     seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB);
+    assert(!mem_page_valid(cookie));
     untyped_4k_ref ref = untyped_allocate_4k();
     if (ref == NULL) {
         ERRX_TRACEPOINT;

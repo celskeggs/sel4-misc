@@ -3,7 +3,7 @@
 #include <resource/mem_vspace.h>
 #include <resource/mem_page.h>
 
-#define COOKIE_COUNT 168
+#define COOKIE_COUNT 168U
 struct vspace_zone {
     struct mem_vspace zone;
     struct mem_page_cookie cookies[COOKIE_COUNT];
@@ -36,19 +36,45 @@ static bool expand_large_pool() {
     return true;
 }
 
-static struct vspace_zone *get_first_with_avail(void) {
-    if (total_avail <= 0) {
+static inline bool is_avail(struct vspace_zone *zone, uint8_t page_count, uint32_t start) {
+    assert(page_count >= MEM_FXLARGE_MIN_PAGES && page_count <= MEM_FXLARGE_MAX_PAGES);
+    for (uint32_t i = 0; i < page_count; i++) {
+        assert(start + i < COOKIE_COUNT);
+        if (mem_page_valid(&zone->cookies[start + i])) {
+            return false; // already used
+        }
+    }
+    return true;
+}
+
+static inline bool has_any_avail(struct vspace_zone *zone, uint8_t page_count) {
+    assert(page_count >= MEM_FXLARGE_MIN_PAGES && page_count <= MEM_FXLARGE_MAX_PAGES);
+    for (uint32_t i = 0; i <= COOKIE_COUNT - page_count; i++) {
+        if (is_avail(zone, page_count, i)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static struct vspace_zone *get_first_with_avail(uint8_t page_count) {
+    assert(page_count >= MEM_FXLARGE_MIN_PAGES && page_count <= MEM_FXLARGE_MAX_PAGES);
+    if (total_avail < page_count) {
+        need_to_expand:
         if (!expand_large_pool()) {
             ERRX_TRACEPOINT;
             return NULL;
         }
-        assert(total_avail > 0);
+        assert(total_avail >= page_count);
     }
     assert(first_zone != NULL); // should be allocated by expand_large_pool above...
     struct vspace_zone *cur = first_zone;
-    while (cur->avail_count == 0) {
+    while (cur->avail_count < page_count || (page_count > 1 && !has_any_avail(cur, page_count))) {
         cur = cur->next;
-        assert(cur != NULL); // should never run out, since total_avail > 0
+        if (cur == NULL) {
+            assert(page_count > 1); // otherwise, this really shouldn't have happened, because there were some pages
+            goto need_to_expand; // oops - we didn't catch this earlier. do it now, though.
+        }
     }
     return cur;
 }
@@ -67,8 +93,23 @@ static struct vspace_zone *get_container(void *ptr) {
     }
 }
 
-void *mem_fxlarge_alloc(void) {
-    struct vspace_zone *cur = get_first_with_avail();
+static inline bool map_range(struct vspace_zone *zone, void *ptr, uint8_t page_count, uint32_t start) {
+    assert(page_count >= MEM_FXLARGE_MIN_PAGES && page_count <= MEM_FXLARGE_MAX_PAGES);
+    for (uint32_t i = 0; i < page_count; i++) {
+        if (!mem_page_map(ptr + PAGE_SIZE * i, &zone->cookies[start + i])) {
+            while (i-- > 0) {
+                mem_page_free(&zone->cookies[start + i]);
+            }
+            ERRX_TRACEPOINT;
+            return false;
+        }
+    }
+    return true;
+}
+
+void *mem_fxlarge_alloc(uint8_t page_count) {
+    assert(page_count >= MEM_FXLARGE_MIN_PAGES && page_count <= MEM_FXLARGE_MAX_PAGES);
+    struct vspace_zone *cur = get_first_with_avail(page_count);
     if (cur == NULL) {
         ERRX_TRACEPOINT;
         return NULL;
@@ -76,28 +117,32 @@ void *mem_fxlarge_alloc(void) {
     assert(cur->avail_count > 0);
     // search for first free
     uint32_t i = 0;
-    while (mem_page_valid(&cur->cookies[i])) {
+    while (!is_avail(cur, page_count, i)) {
         i++;
-        assert(i < COOKIE_COUNT); // because avail_count > 0, this should never happen.
+        assert(i <= COOKIE_COUNT - page_count); // because avail_count > 0, this should never happen.
     }
     void *goalptr = mem_vspace_ptr(&cur->zone) + PAGE_SIZE * i;
     assert((((uintptr_t) goalptr) & (PAGE_SIZE - 1)) == 0);
-    if (!mem_page_map(goalptr, &cur->cookies[i])) {
+    if (!map_range(cur, goalptr, page_count, i)) {
         ERRX_TRACEPOINT;
         return NULL;
     }
-    cur->avail_count--;
-    total_avail--;
+    cur->avail_count -= page_count;
+    total_avail -= total_avail;
     return goalptr;
 }
 
-void mem_fxlarge_free(void *data) {
+void mem_fxlarge_free(void *data, uint8_t page_count) {
+    assert(page_count >= MEM_FXLARGE_MIN_PAGES && page_count <= MEM_FXLARGE_MAX_PAGES);
     assert((((uintptr_t) data) & (PAGE_SIZE - 1)) == 0);
     struct vspace_zone *cur = get_container(data);
     uint32_t index = (data - mem_vspace_ptr(&cur->zone)) / PAGE_SIZE;
     assert(index < COOKIE_COUNT);
-    assert(mem_page_valid(&cur->cookies[index]));
-    mem_page_free(&cur->cookies[index]);
-    cur->avail_count++;
-    total_avail++;
+    assert(index + page_count <= COOKIE_COUNT);
+    for (uint32_t i = 0; i < page_count; i++) {
+        assert(mem_page_valid(&cur->cookies[index + i]));
+        mem_page_free(&cur->cookies[index + i]);
+    }
+    cur->avail_count += page_count;
+    total_avail += page_count;
 }

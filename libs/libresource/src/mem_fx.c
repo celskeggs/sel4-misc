@@ -30,8 +30,8 @@ static inline size_t round_size(size_t size) {
 
 void *mem_fx_alloc(size_t size) {
     if (size > FXCACHE_MAX) {
-        if (size <= PAGE_SIZE) {
-            return mem_fxlarge_alloc(); // just give them an entire page
+        if (size <= MEM_FXLARGE_MAX_SIZE) {
+            return mem_fxlarge_alloc((uint8_t) ((size + PAGE_SIZE - 1) / PAGE_SIZE)); // just give them an entire page
         }
         ERRX_RAISE_GENERIC(GERR_REQUEST_TOO_LARGE);
         return false;
@@ -52,9 +52,9 @@ void *mem_fx_alloc(size_t size) {
 }
 
 void mem_fx_free(void *data, size_t size) {
-    assert(size <= PAGE_SIZE);
+    assert(size <= MEM_FXLARGE_MAX_SIZE);
     if (size > FXCACHE_MAX) {
-        mem_fxlarge_free(data);
+        mem_fxlarge_free(data, (uint8_t) ((size + PAGE_SIZE - 1) / PAGE_SIZE));
     } else {
         size = round_size(size);
         mem_fxcache_insert(&fx_cache, data, size);

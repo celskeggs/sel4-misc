@@ -16,7 +16,7 @@ struct pd_param {
 };
 
 static struct pagetable *get_pagetable(struct pagedir *pd, void *virtual_address) {
-    uintptr_t page_table_id = ((uintptr_t) virtual_address) >> seL4_PageTableBits;
+    uintptr_t page_table_id = ((uintptr_t) virtual_address) >> seL4_LargePageBits;
     assert(page_table_id < PAGE_TABLE_COUNT);
     struct pagetable *pt = pd->pts[page_table_id];
     if (pt != NULL) {
@@ -146,6 +146,7 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
     if (spare_cptr == seL4_CapNull) {
         mem_fx_free(pdir, sizeof(struct pagedir));
         mem_vspace_dealloc_slice(&zone);
+        ERRX_TRACEPOINT;
         return NULL;
     }
     pdir->pd = page_dir;
@@ -179,8 +180,8 @@ void elfloader_unload(struct pagedir *pd) {
                 }
             }
             untyped_free_4k(pt->pt);
+            mem_fx_free(pt, sizeof(struct pagetable));
         }
-        mem_fx_free(pt, sizeof(struct pagetable));
         pd->pts[i] = NULL;
     }
     mem_fx_free(pd, sizeof(struct pagedir));

@@ -20,9 +20,6 @@ bool main(void) {
     if (!serial_write(buf, (size_t) strlen(buf))) {
         return false;
     }
-    if (!serial_write(image_helloworld, 32)) {
-        return false;
-    }
     // serial_wait_ready();
     struct elfexec context;
     if (!elfexec_init(image_helloworld, image_helloworld_end - image_helloworld, &context, seL4_CapNull, 255, seL4_CapNull, 0)) {
@@ -31,6 +28,11 @@ bool main(void) {
     if (!elfexec_start(&context)) {
         return false;
     }
+    DEBUG("STARTED");
+    for (int i = 0; i < 100000000; i++) {
+        asm("nop");
+    }
+    DEBUG("STOPPED");
     return true;
 }
 

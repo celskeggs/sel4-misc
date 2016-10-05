@@ -8,6 +8,7 @@ add_library(resource STATIC ${LIB_RESOURCE_HEADERS}
         src/mem_fx.c
         src/mem_fxalloc.c
         src/mem_fxcache.c
+        src/mem_fxlarge.c
         src/mem_fxseq.c
         src/mem_page.c
         src/mem_vspace.c

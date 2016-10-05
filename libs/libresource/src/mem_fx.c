@@ -1,6 +1,7 @@
 #include <resource/mem_fx.h>
 #include <resource/mem_fxcache.h>
 #include <resource/mem_fxseq.h>
+#include <resource/mem_fxlarge.h>
 
 static struct mem_fxcache fx_cache = MEM_FXCACHE_INIT;
 static struct mem_fxseq fx_seq = MEM_FXSEQ_PREINIT;
@@ -29,6 +30,9 @@ static inline size_t round_size(size_t size) {
 
 void *mem_fx_alloc(size_t size) {
     if (size > FXCACHE_MAX) {
+        if (size <= PAGE_SIZE) {
+            return mem_fxlarge_alloc(); // just give them an entire page
+        }
         ERRX_RAISE_GENERIC(GERR_REQUEST_TOO_LARGE);
         return false;
     }
@@ -48,6 +52,11 @@ void *mem_fx_alloc(size_t size) {
 }
 
 void mem_fx_free(void *data, size_t size) {
-    size = round_size(size);
-    mem_fxcache_insert(&fx_cache, data, size);
+    assert(size <= PAGE_SIZE);
+    if (size > FXCACHE_MAX) {
+        mem_fxlarge_free(data);
+    } else {
+        size = round_size(size);
+        mem_fxcache_insert(&fx_cache, data, size);
+    }
 }

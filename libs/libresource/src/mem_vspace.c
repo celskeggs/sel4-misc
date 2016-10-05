@@ -34,12 +34,7 @@ static struct mem_vspace beta_zone = {
         .prev = &root_zone,
 };
 
-void mem_vspace_setup(size_t image_size, void *ipc_buffer, void *boot_buffer) {
-    // make sure we also don't allocate over the ipc buffer
-    assert(&__executable_start + image_size == ipc_buffer);
-    assert(&__executable_start + image_size + 0x1000 == boot_buffer);
-    image_size += PAGE_SIZE;
-
+void mem_vspace_setup(size_t image_size) {
     beta_zone.alloc_begin = (void *) ((uintptr_t) &__executable_start & ~(PAGE_TABLE_SIZE - 1));
     beta_zone.middle = (void *) (((uintptr_t) &__executable_start + image_size + PAGE_TABLE_SIZE - 1) &
                                  ~(PAGE_TABLE_SIZE - 1));

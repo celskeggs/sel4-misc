@@ -43,7 +43,13 @@ seL4_CPtr current_vspace = seL4_CapInitThreadVSpace;
 void premain(seL4_BootInfo *bi) {
     ERRX_START;
 
-    mem_vspace_setup((bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE, bi->ipcBuffer, bi);
+    uint32_t image_size = (bi->userImageFrames.end - bi->userImageFrames.start) * PAGE_SIZE;
+    // make sure we also don't allocate over the ipc buffer
+    assert(&__executable_start + image_size == (void *) bi->ipcBuffer);
+    assert(&__executable_start + image_size + 0x1000 == (void *) bi);
+    image_size += PAGE_SIZE;
+    mem_vspace_setup(image_size);
+
     if (!cslot_setup(seL4_CapInitThreadCNode, bi->empty.start, bi->empty.end)) {
         ERRX_TRACEBACK;
         fail("end");

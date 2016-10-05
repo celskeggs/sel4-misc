@@ -13,7 +13,7 @@ struct mem_vspace {
     struct mem_vspace *next;
 };
 
-void mem_vspace_setup(size_t image_size, void *ipc_buffer, void *boot_buffer);
+void mem_vspace_setup(size_t image_size);
 
 // "approximate" means that the actual size can be as low as 1/2 of the value or as high as 2x the value
 // allocated space will be in a page multiple

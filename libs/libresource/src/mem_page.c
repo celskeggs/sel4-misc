@@ -107,20 +107,24 @@ bool mem_page_shared_map(void *page, seL4_IA32_Page pent, struct mem_page_cookie
     return true;
 }
 
-void mem_page_free(struct mem_page_cookie *data) {
-    assert(data != NULL);
-    if (data->ref != NULL) {
-        untyped_free_4k(data->ref);
-        data->ref = NULL;
+void mem_page_free(struct mem_page_cookie *cookie) {
+    assert(cookie != NULL);
+    if (cookie->ref != NULL) {
+        untyped_free_4k(cookie->ref);
+        cookie->ref = NULL;
     }
-    if (data->mapped != seL4_CapNull) {
-        seL4_IA32_Page_Unmap(data->mapped);
-        data->mapped = seL4_CapNull;
+    if (cookie->mapped != seL4_CapNull) {
+        seL4_IA32_Page_Unmap(cookie->mapped);
+        cookie->mapped = seL4_CapNull;
     }
-    if (data->unref_addr != NULL) {
-        unref_table(data->unref_addr);
-        data->unref_addr = NULL;
+    if (cookie->unref_addr != NULL) {
+        unref_table(cookie->unref_addr);
+        cookie->unref_addr = NULL;
     }
+}
+
+bool mem_page_valid(struct mem_page_cookie *cookie) {
+    return cookie->ref != NULL || cookie->mapped != NULL;
 }
 
 bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
@@ -144,18 +148,21 @@ bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
     } else {
         if (err == seL4_FailedLookup) {
             if (!map_table(page)) {
+                untyped_free_4k(ref);
                 ERRX_TRACEPOINT;
                 return false;
             }
             err = seL4_IA32_Page_Map(pent, current_vspace, (uintptr_t) page, seL4_AllRights,
                                      seL4_IA32_Default_VMAttributes);
             if (err != seL4_NoError) {
+                untyped_free_4k(ref);
                 unref_table(page);
                 ERRX_RAISE_SEL4(err);
                 return false;
             }
             outside_table = false;
         } else {
+            untyped_free_4k(ref);
             ERRX_RAISE_SEL4(err);
             return false;
         }

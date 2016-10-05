@@ -114,10 +114,12 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
     if (param->is_cptr_active) {
         mem_page_free(&param->cur_cookie);
     }
-    assert(cslot_delete(alt) == seL4_NoError);
-    assert(cslot_copy(page, alt) == seL4_NoError);
+    param->is_cptr_active = false;
+    if (!cslot_delete(alt) || !cslot_copy(page, alt)) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
     if (!mem_page_shared_map(param->target_addr, alt, &param->cur_cookie)) {
-        param->is_cptr_active = false;
         ERRX_TRACEPOINT;
         return false;
     } else {

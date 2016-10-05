@@ -8,7 +8,6 @@
 #define PAGE_ACCESS_UNINIT 0xFF
 
 struct pd_param {
-    bool is_cptr_active;
     seL4_CPtr active_cptr;
     void *target_addr;
     struct mem_page_cookie cur_cookie;
@@ -111,10 +110,9 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
         return false;
     }
     seL4_IA32_Page alt = param->active_cptr;
-    if (param->is_cptr_active) {
+    if (mem_page_valid(&param->cur_cookie)) {
         mem_page_free(&param->cur_cookie);
     }
-    param->is_cptr_active = false;
     if (!cslot_delete(alt) || !cslot_copy(page, alt)) {
         ERRX_TRACEPOINT;
         return false;
@@ -123,7 +121,6 @@ static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) 
         ERRX_TRACEPOINT;
         return false;
     } else {
-        param->is_cptr_active = true;
         return true;
     }
 }
@@ -152,12 +149,12 @@ struct pagedir *elfloader_load(void *elf, size_t file_size, seL4_IA32_PageDirect
         return NULL;
     }
     pdir->pd = page_dir;
-    struct pd_param param = {.pagedir = pdir, .target_addr = buffer, .active_cptr = spare_cptr, .is_cptr_active = false};
+    struct pd_param param = {.pagedir = pdir, .target_addr = buffer, .active_cptr = spare_cptr};
     for (uint32_t i = 0; i < PAGE_TABLE_COUNT; i++) {
         pdir->pts[i] = NULL;
     }
     bool success = elfparser_load(elf, file_size, remapper, &param, buffer, &pdir->entry_position);
-    if (param.is_cptr_active) {
+    if (mem_page_valid(&param.cur_cookie)) {
         mem_page_free(&param.cur_cookie);
     }
     cslot_delete(spare_cptr);

@@ -64,12 +64,12 @@ static bool registers_configure(struct elfexec *holder, uintptr_t param) {
     return true;
 }
 
-static bool cspace_configure(struct elfexec *holder, seL4_IA32_Page ipc_page, seL4_CPtr io_ep, uint32_t io_badge) {
+static bool cspace_configure(struct elfexec *holder, seL4_IA32_Page ipc_page, seL4_CPtr io_ep) {
     seL4_CNode cspace = untyped_auxptr_4k(holder->cspace);
-    if (!cslot_copy_out(untyped_auxptr_4k(holder->page_directory), cspace, ecap_PD, 32)
-        || !cslot_copy_out(cspace, cspace, ecap_CNode, 32)
-        || !cslot_copy_out(ipc_page, cspace, ecap_IPC, 32)
-        || !cslot_mint_out(io_ep, cspace, ecap_IOEP, 32, io_badge)) {
+    if (!cslot_copy_out(untyped_auxptr_4k(holder->page_directory), cspace, ecap_PD, CAPBITS)
+        || !cslot_copy_out(cspace, cspace, ecap_CNode, CAPBITS)
+        || !cslot_copy_out(ipc_page, cspace, ecap_IPC, CAPBITS)
+        || !(io_ep == seL4_CapNull || cslot_copy_out(io_ep, cspace, ecap_IOEP, CAPBITS))) { // TODO: disallow null
         ERRX_TRACEPOINT;
         return false;
     }
@@ -77,7 +77,7 @@ static bool cspace_configure(struct elfexec *holder, seL4_IA32_Page ipc_page, se
 }
 
 bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority,
-                  seL4_CPtr io_ep, uint32_t io_badge) {
+                  seL4_CPtr io_ep) {
     int alloc_count = 3;
     int types[] = {seL4_IA32_PageDirectoryObject, seL4_TCBObject, seL4_CapTableObject};
     int bits[] = {0, 0, CAPBITS};
@@ -102,7 +102,7 @@ bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr
         return false;
     }
     if (!tcb_configure(holder, fault_ep, priority, ipc_page) || !registers_configure(holder, IPC_ADDRESS)
-        || !cspace_configure(holder, ipc_page, io_ep, io_badge)) {
+        || !cspace_configure(holder, ipc_page, io_ep)) {
         elfexec_destroy(holder);
         ERRX_TRACEPOINT;
         return false;

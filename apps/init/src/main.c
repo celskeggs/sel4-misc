@@ -22,7 +22,7 @@ bool main(void) {
     }
     // serial_wait_ready();
     struct elfexec context;
-    if (!elfexec_init(image_helloworld, image_helloworld_end - image_helloworld, &context, seL4_CapNull, 255, seL4_CapNull, 0)) {
+    if (!elfexec_init(image_helloworld, image_helloworld_end - image_helloworld, &context, seL4_CapNull, 255, seL4_CapNull)) {
         return false;
     }
     if (!elfexec_start(&context)) {

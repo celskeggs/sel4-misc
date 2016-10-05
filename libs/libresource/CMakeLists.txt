@@ -2,7 +2,7 @@
 # "exported" - used by other CMake scripts
 set(LIB_RESOURCE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_library(resource STATIC ${LIB_RESOURCE_HEADERS}
+add_library(libresource STATIC ${LIB_RESOURCE_HEADERS}
         src/cslot.c
         src/mem_arena.c
         src/mem_fx.c
@@ -14,5 +14,5 @@ add_library(resource STATIC ${LIB_RESOURCE_HEADERS}
         src/mem_vspace.c
         src/object.c
         src/untyped.c)
-target_include_directories(resource PUBLIC ${LIB_RESOURCE_HEADERS})
-target_link_libraries(resource bedrock)
+target_include_directories(libresource PUBLIC ${LIB_RESOURCE_HEADERS})
+target_link_libraries(libresource libbedrock)

@@ -5,7 +5,7 @@
 #include <resource/untyped.h>
 
 // TODO: get 4 (log 16, the cnode entry size) as a constant
-#define ECAP_ROOT_BITS BITS_4KIB - 4
+#define ECAP_ROOT_BITS (BITS_4KIB - 4)
 
 enum elfcontext_cspace {
     ecap_Null = 0,
@@ -15,6 +15,12 @@ enum elfcontext_cspace {
     ecap_IOEP,
     ecap_StartFree,
     ecap_EndFree = BIT(ECAP_ROOT_BITS) - 1,
+};
+
+// messages to root from sandbox
+enum root_label {
+    RL_TEST = 256,
+    RL_HALT,
 };
 
 // brief architecture overview:

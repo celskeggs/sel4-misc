@@ -1,39 +1,53 @@
 #include <sel4/sel4.h>
-#include "serial.h"
 #include <elfloader/elfexec.h>
 #include <resource/cslot.h>
-#include <resource/untyped.h>
-#include <resource/mem_page.h>
 #include <resource/mem_vspace.h>
 #include <resource/mem_fx.h>
+#include <resource/object.h>
+#include <elfloader/elfcontext.h>
 
-extern char *image_helloworld;
-extern char *image_helloworld_end;
+extern char *image_sandbox;
+extern char *image_sandbox_end;
 
 bool main(void) {
-    const char *source = "Hello, serial world Nth!\n";
-    char *buf = mem_fx_alloc(64);
-    if (buf == NULL) {
+    seL4_CPtr root_endpoint = object_alloc_endpoint();
+    if (root_endpoint == seL4_CapNull) {
         return false;
     }
-    memcpy(buf, source, strlen(source));
-    if (!serial_write(buf, (size_t) strlen(buf))) {
-        return false;
-    }
-    // serial_wait_ready();
     struct elfexec context;
-    if (!elfexec_init(image_helloworld, image_helloworld_end - image_helloworld, &context, seL4_CapNull, 255, seL4_CapNull)) {
+    if (!elfexec_init(image_sandbox, image_sandbox_end - image_sandbox, &context, seL4_CapNull, 255, root_endpoint)) {
         return false;
     }
     if (!elfexec_start(&context)) {
         return false;
     }
-    DEBUG("STARTED");
-    for (int i = 0; i < 100000000; i++) {
-        asm("nop");
+    while (true) {
+        seL4_MessageInfo_t recv = seL4_Recv(root_endpoint, NULL);
+        enum root_label label = (enum root_label) seL4_MessageInfo_get_label(recv);
+        uint32_t length = seL4_MessageInfo_get_length(recv);
+        uint32_t extracaps = seL4_MessageInfo_get_extraCaps(recv);
+        uint32_t capsUnwrapped = seL4_MessageInfo_get_capsUnwrapped(recv);
+        uint32_t response;
+        DEBUG("recv");
+        debug_printdec(label);
+        debug_printdec(length);
+        debug_printdec(extracaps);
+        debug_printdec(capsUnwrapped);
+        switch (label) {
+            case RL_TEST:
+                DEBUG("test receive successful");
+                response = 162;
+                break;
+            case RL_HALT:
+                DEBUG("HALT");
+                return true;
+            default:
+                DEBUG("invalid receive...");
+                response = 0;
+                break;
+        }
+        seL4_Reply(seL4_MessageInfo_new(response, 0, 0, 0));
     }
-    DEBUG("STOPPED");
-    return true;
 }
 
 extern char __executable_start;
@@ -56,11 +70,6 @@ void premain(seL4_BootInfo *bi) {
     }
 
     if (!untyped_add_boot_memory(bi)) {
-        ERRX_TRACEBACK;
-        fail("end");
-    }
-
-    if (!serial_init(seL4_CapIOPort, seL4_CapIRQControl, NULL)) {
         ERRX_TRACEBACK;
         fail("end");
     }

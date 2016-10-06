@@ -36,7 +36,8 @@ static bool allocate_retypeds(int count, int *types, int *szb, untyped_4k_ref **
 
 static bool tcb_configure(struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority, seL4_IA32_Page ipc_page) {
     int err = seL4_TCB_Configure(untyped_auxptr_4k(holder->tcb), fault_ep, priority, untyped_auxptr_4k(holder->cspace),
-                                 seL4_CapData_Guard_new(0, 32 - ECAP_ROOT_BITS), untyped_auxptr_4k(holder->page_directory),
+                                 seL4_CapData_Guard_new(0, 32 - ECAP_ROOT_BITS),
+                                 untyped_auxptr_4k(holder->page_directory),
                                  (seL4_CapData_t) {.words = {0}}, IPC_ADDRESS, ipc_page);
     if (err != seL4_NoError) {
         ERRX_RAISE_SEL4(err);
@@ -67,7 +68,8 @@ static bool cspace_configure(struct elfexec *holder, seL4_IA32_Page ipc_page, se
     if (!cslot_copy_out(untyped_auxptr_4k(holder->page_directory), cspace, ecap_PD, ECAP_ROOT_BITS)
         || !cslot_copy_out(cspace, cspace, ecap_CNode, ECAP_ROOT_BITS)
         || !cslot_copy_out(ipc_page, cspace, ecap_IPC, ECAP_ROOT_BITS)
-        || !(io_ep == seL4_CapNull || cslot_copy_out(io_ep, cspace, ecap_IOEP, ECAP_ROOT_BITS))) { // TODO: disallow null
+        || !cslot_copy_out(io_ep, cspace, ecap_IOEP, ECAP_ROOT_BITS)
+            ) {
         ERRX_TRACEPOINT;
         return false;
     }
@@ -93,7 +95,7 @@ bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr
         return false;
     }
     seL4_IA32_Page ipc_page = elfloader_get_page(holder->pd, (void *) IPC_ADDRESS,
-                                                 ELF_MEM_READABLE | ELF_MEM_EXECUTABLE, true);
+                                                 ELF_MEM_READABLE | ELF_MEM_WRITABLE, true);
     if (ipc_page == seL4_CapNull) {
         elfexec_destroy(holder);
         ERRX_TRACEPOINT;

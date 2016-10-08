@@ -20,6 +20,8 @@ bool cslot_copy(seL4_CPtr from, seL4_CPtr to);
 
 bool cslot_copy_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth);
 
+bool cslot_mutate(seL4_CPtr from, seL4_CPtr to, seL4_CapData_t cdata);
+
 bool cslot_mint(seL4_CPtr from, seL4_CPtr to, uint32_t badge);
 
 bool cslot_mint_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth, uint32_t badge);

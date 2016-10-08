@@ -224,6 +224,24 @@ bool cslot_copy_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to
     }
 }
 
+bool cslot_mutate(seL4_CPtr from, seL4_CPtr to, seL4_CapData_t cdata) {
+    if (from == seL4_CapNull || to == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
+    bool mediate = from == to; // then we'll use seL4_CapNull as an intermediary... this is very hacky!
+    int err = seL4_CNode_Mutate(c_root_cnode, mediate ? seL4_CapNull : to, 32, c_root_cnode, from, 32, cdata);
+    if (err == seL4_NoError && mediate) {
+        err = seL4_CNode_Move(c_root_cnode, to, 32, c_root_cnode, seL4_CapNull, 32);
+    }
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
+}
+
 bool cslot_mint(seL4_CPtr from, seL4_CPtr to, uint32_t badge) {
     if (from == seL4_CapNull || to == seL4_CapNull) {
         ERRX_RAISE_GENERIC(GERR_NULL_VALUE);

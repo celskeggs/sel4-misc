@@ -313,3 +313,12 @@ bool cslot_irqget(seL4_IRQControl ctrl, int irq, seL4_CPtr slot) {
         return false;
     }
 }
+
+bool cslot_set_receive_path(seL4_CPtr ptr) {
+    if (ptr == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
+    seL4_SetCapReceivePath(c_root_cnode, ptr, 32);
+    return true;
+}

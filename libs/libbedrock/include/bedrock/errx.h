@@ -33,10 +33,12 @@ enum errx_generics {
     GERR_ACCESS_VIOLATION,
     GERR_UNSATISFIED_CONSTRAINT,
     GERR_NULL_VALUE,
+    GERR_UNKNOWN_ERROR,
 };
 #define _ERRX_GENERIC_STRINGS { "OK", "Memory Pool Exhausted", "Invalid State for Operation", "Data Spilled and Lost", \
                                 "Invalid Magic Number", "Unsupported Option", "Malformed Data", "Request Too Large", \
-                                "Parameter Out of Range", "Access Violation", "Unsatisfied Constraint", "Null Value" }
+                                "Parameter Out of Range", "Access Violation", "Unsatisfied Constraint", "Null Value", \
+                                "Unknown Error" }
 
 extern void errx_type_none(void *errx_status, char *description_out, size_t description_len);
 

@@ -66,7 +66,7 @@ extern void errx_type_generic(void *p, char *out, size_t len) {
 extern void errx_concat_traceback(struct errx_status *errx_status, char *out, size_t len) {
     if (errx_status->traceback_next > 0) {
         out = strblitadv(out, &len, "\n\t");
-        for (int i = 0; i < errx_status->traceback_next; i++) {
+        for (uint32_t i = 0; i < errx_status->traceback_next; i++) {
             out = strblitadv(out, &len, errx_status->traceback_elems[i]);
             out = strblitadv(out, &len, "\n\t");
         }

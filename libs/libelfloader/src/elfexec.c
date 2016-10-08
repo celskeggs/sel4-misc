@@ -65,10 +65,11 @@ static bool registers_configure(struct elfexec *holder, uintptr_t param) {
 
 static bool cspace_configure(struct elfexec *holder, seL4_IA32_Page ipc_page, seL4_CPtr io_ep) {
     seL4_CNode cspace = untyped_auxptr_4k(holder->cspace);
-    if (!cslot_copy_out(untyped_auxptr_4k(holder->page_directory), cspace, ecap_PD, ECAP_ROOT_BITS)
-        || !cslot_copy_out(cspace, cspace, ecap_CNode, ECAP_ROOT_BITS)
-        || !cslot_copy_out(ipc_page, cspace, ecap_IPC, ECAP_ROOT_BITS)
-        || !cslot_copy_out(io_ep, cspace, ecap_IOEP, ECAP_ROOT_BITS)
+    if (!cslot_mutate(cspace, cspace, seL4_CapData_Guard_new(0, 32 - ECAP_ROOT_BITS))
+        || !cslot_copy_out(untyped_auxptr_4k(holder->page_directory), cspace, ecap_PD, 32)
+        || !cslot_copy_out(cspace, cspace, ecap_CNode, 32)
+        || !cslot_copy_out(ipc_page, cspace, ecap_IPC, 32)
+        || !cslot_copy_out(io_ep, cspace, ecap_IOEP, 32)
             ) {
         ERRX_TRACEPOINT;
         return false;

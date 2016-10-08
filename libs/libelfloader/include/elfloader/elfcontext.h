@@ -17,12 +17,6 @@ enum elfcontext_cspace {
     ecap_EndFree = BIT(ECAP_ROOT_BITS) - 1,
 };
 
-// messages to root from sandbox
-enum root_label {
-    RL_TEST = 256,
-    RL_HALT,
-};
-
 // brief architecture overview:
 
 // ---- privileged servers ----

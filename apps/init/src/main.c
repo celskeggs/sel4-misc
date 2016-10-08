@@ -3,11 +3,16 @@
 #include <resource/cslot.h>
 #include <resource/mem_vspace.h>
 #include <resource/mem_fx.h>
+#include <ipc/ipc.h>
 #include <resource/object.h>
-#include <elfloader/elfcontext.h>
 
 extern char *image_sandbox;
 extern char *image_sandbox_end;
+
+bool ipc_handle_ping(uint32_t sender, struct ipc_in_ping *in, struct ipc_out_ping *out) {
+    out->value_neg = ~in->value;
+    return true;
+}
 
 bool main(void) {
     seL4_CPtr root_endpoint = object_alloc_endpoint();
@@ -21,33 +26,7 @@ bool main(void) {
     if (!elfexec_start(&context)) {
         return false;
     }
-    while (true) {
-        seL4_MessageInfo_t recv = seL4_Recv(root_endpoint, NULL);
-        enum root_label label = (enum root_label) seL4_MessageInfo_get_label(recv);
-        uint32_t length = seL4_MessageInfo_get_length(recv);
-        uint32_t extracaps = seL4_MessageInfo_get_extraCaps(recv);
-        uint32_t capsUnwrapped = seL4_MessageInfo_get_capsUnwrapped(recv);
-        uint32_t response;
-        DEBUG("recv");
-        debug_printdec(label);
-        debug_printdec(length);
-        debug_printdec(extracaps);
-        debug_printdec(capsUnwrapped);
-        switch (label) {
-            case RL_TEST:
-                DEBUG("test receive successful");
-                response = 162;
-                break;
-            case RL_HALT:
-                DEBUG("HALT");
-                return true;
-            default:
-                DEBUG("invalid receive...");
-                response = 0;
-                break;
-        }
-        seL4_Reply(seL4_MessageInfo_new(response, 0, 0, 0));
-    }
+    SERVER_LOOP(root_endpoint, true, SERVER_FOR(ping));
 }
 
 extern char __executable_start;

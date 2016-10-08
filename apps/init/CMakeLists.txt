@@ -8,4 +8,5 @@ add_executable(init src/main.c src/serial.c src/serial.h ${CMAKE_CURRENT_BINARY_
 target_link_libraries(init libbedrock)
 target_link_libraries(init libresource)
 target_link_libraries(init libelfloader)
+target_link_libraries(init libipc)
 install(TARGETS init DESTINATION images)

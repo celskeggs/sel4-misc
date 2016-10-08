@@ -10,8 +10,18 @@ extern char *image_sandbox;
 extern char *image_sandbox_end;
 
 bool ipc_handle_ping(uint32_t sender, struct ipc_in_ping *in, struct ipc_out_ping *out) {
+    (void) sender;
     out->value_neg = ~in->value;
     return true;
+}
+
+bool ipc_handle_init_alloc_4k(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_init_alloc_4k *in, struct ipc_out_init_alloc_4k *out) {
+    (void) sender;
+    (void) in;
+    untyped_4k_ref ref = untyped_allocate_4k();
+    out->cookie = (uint32_t) ref; // TODO: something less insecure
+    assert(cslot_copy(untyped_ptr_4k(ref), cap_out));
+    return true; // TODO: don't assert
 }
 
 bool main(void) {
@@ -26,7 +36,7 @@ bool main(void) {
     if (!elfexec_start(&context)) {
         return false;
     }
-    SERVER_LOOP(root_endpoint, true, SERVER_FOR(ping));
+    SERVER_LOOP(root_endpoint, true, SERVER_FOR(ping) SERVER_FOR(init_alloc_4k));
 }
 
 extern char __executable_start;

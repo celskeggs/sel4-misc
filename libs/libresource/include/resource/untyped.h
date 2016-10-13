@@ -23,18 +23,7 @@ bool untyped_add_memory(seL4_Untyped ut, int size_bits);
 seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB); // 4 kib
 seL4_CompileTimeAssert(seL4_LargePageBits == BITS_4MIB); // 4 mib
 
-typedef void *untyped_4m_ref;
 typedef void *untyped_4k_ref;
-
-
-untyped_4m_ref untyped_allocate_4m(void);
-
-seL4_Untyped untyped_ptr_4m(untyped_4m_ref mem);
-
-seL4_CPtr untyped_auxptr_4m(untyped_4m_ref mem);
-
-void untyped_free_4m(untyped_4m_ref mem);
-
 
 untyped_4k_ref untyped_allocate_4k(void);
 

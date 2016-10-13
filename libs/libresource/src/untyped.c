@@ -2,6 +2,8 @@
 #include <resource/cslot.h>
 #include <resource/mem_fx.h>
 
+typedef void *untyped_4m_ref;
+
 // tracks two sizes:
 // 4 MIB (size of large pages)
 // 4 KIB (size of small pages, size of various miscellaneous structures)

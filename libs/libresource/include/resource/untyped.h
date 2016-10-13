@@ -17,12 +17,6 @@ bool untyped_add_memory(seL4_Untyped ut, int size_bits);
 // 4 mib (large pages)
 // we just provide two of these in this module. see object.h for 16-byte allocation.
 
-#define BITS_4KIB 12
-#define BITS_4MIB 22
-
-seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB); // 4 kib
-seL4_CompileTimeAssert(seL4_LargePageBits == BITS_4MIB); // 4 mib
-
 typedef void *untyped_4k_ref;
 
 untyped_4k_ref untyped_allocate_4k(void);

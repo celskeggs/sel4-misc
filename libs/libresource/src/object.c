@@ -150,28 +150,3 @@ seL4_CPtr object_alloc_endpoint() {
 seL4_CPtr object_alloc_notification() {
     return small_table_alloc(seL4_NotificationObject);
 }
-
-static seL4_CPtr object_alloc_4k(int type, uint8_t size_bits_alloc) {
-    untyped_4k_ref ref = untyped_allocate_4k();
-    if (ref == NULL) {
-        ERRX_TRACEPOINT;
-        return seL4_CapNull;
-    }
-    seL4_CPtr ptr = untyped_auxptr_4k(ref);
-    if (!untyped_retype_to(ref, type, 0, size_bits_alloc, ptr)) {
-        untyped_free_4k(ref);
-        ERRX_TRACEPOINT;
-        return seL4_CapNull;
-    }
-    return ptr;
-}
-
-seL4_IA32_Page object_alloc_page() {
-    seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB);
-    return object_alloc_4k(seL4_IA32_4K, 0);
-}
-
-seL4_IA32_PageTable object_alloc_page_table() {
-    seL4_CompileTimeAssert(seL4_PageTableBits == BITS_4KIB);
-    return object_alloc_4k(seL4_IA32_PageTableObject, 0);
-}

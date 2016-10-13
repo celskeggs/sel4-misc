@@ -26,19 +26,13 @@ static struct pagetable *get_pagetable(struct pagedir *pd, void *virtual_address
         ERRX_TRACEPOINT;
         return NULL;
     }
-    pt->pt = untyped_allocate_4k();
+    pt->pt = untyped_allocate_retyped(seL4_IA32_PageTableObject, 0);
     if (pt->pt == NULL) {
         mem_fx_free(pt, sizeof(struct pagetable));
         ERRX_TRACEPOINT;
         return NULL;
     }
     seL4_IA32_PageTable table = untyped_auxptr_4k(pt->pt);
-    if (!cslot_retype(untyped_ptr_4k(pt->pt), seL4_IA32_PageTableObject, 0, 0, table, 1)) {
-        untyped_free_4k(pt->pt);
-        mem_fx_free(pt, sizeof(struct pagetable));
-        ERRX_TRACEPOINT;
-        return NULL;
-    }
     int err = seL4_IA32_PageTable_Map(table, pd->pd, page_table_id * PAGE_TABLE_SIZE,
                                       seL4_IA32_Default_VMAttributes);
     if (err != seL4_NoError) {
@@ -66,13 +60,8 @@ seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uin
     assert(page_offset < PAGE_COUNT_PER_TABLE);
     if (pt->pages[page_offset] == NULL) {
         // NEED TO ALLOCATE PAGE
-        untyped_4k_ref ut = untyped_allocate_4k();
+        untyped_4k_ref ut = untyped_allocate_retyped(seL4_IA32_4K, 0);
         if (ut == NULL) {
-            ERRX_TRACEPOINT;
-            return seL4_CapNull;
-        }
-        if (!cslot_retype(untyped_ptr_4k(ut), seL4_IA32_4K, 0, 0, untyped_auxptr_4k(ut), 1)) {
-            untyped_free_4k(ut);
             ERRX_TRACEPOINT;
             return seL4_CapNull;
         }

@@ -12,27 +12,17 @@ static inline uint16_t address_to_table_index(void *page_table) {
     return (uint16_t) page;
 }
 
-static bool untyped_retype_to(untyped_4k_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr) {
-    assert(ptr != seL4_CapNull);
-    return cslot_retype(untyped_ptr_4k(ref), type, offset, size_bits, ptr, 1);
-}
-
 static bool map_table(void *page) {
     uint16_t tid = address_to_table_index(page);
     assert(mem_page_tables[tid] == NULL); // otherwise, someone unmapped us without permission
     assert(mem_page_counts[tid] == 0);
     seL4_CompileTimeAssert(seL4_PageTableBits == BITS_4KIB);
-    untyped_4k_ref ref = untyped_allocate_4k();
+    untyped_4k_ref ref = untyped_allocate_retyped(seL4_IA32_PageTableObject, 0);
     if (ref == NULL) {
         ERRX_TRACEPOINT;
         return false;
     }
     seL4_IA32_PageTable table = untyped_auxptr_4k(ref);
-    if (!untyped_retype_to(ref, seL4_IA32_PageTableObject, 0, 0, table)) {
-        untyped_free_4k(ref);
-        ERRX_TRACEPOINT;
-        return false;
-    }
     int err = seL4_IA32_PageTable_Map(table, current_vspace, tid * PAGE_TABLE_SIZE,
                                       seL4_IA32_Default_VMAttributes);
     if (err != seL4_NoError) {
@@ -130,17 +120,12 @@ bool mem_page_valid(struct mem_page_cookie *cookie) {
 bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
     seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB);
     assert(!mem_page_valid(cookie));
-    untyped_4k_ref ref = untyped_allocate_4k();
+    untyped_4k_ref ref = untyped_allocate_retyped(seL4_IA32_4K, 0);
     if (ref == NULL) {
         ERRX_TRACEPOINT;
         return false;
     }
     seL4_IA32_Page pent = untyped_auxptr_4k(ref);
-    if (!untyped_retype_to(ref, seL4_IA32_4K, 0, 0, pent)) {
-        untyped_free_4k(ref);
-        ERRX_TRACEPOINT;
-        return false;
-    }
     int err = seL4_IA32_Page_Map(pent, current_vspace, (uintptr_t) page, seL4_AllRights,
                                  seL4_IA32_Default_VMAttributes);
     bool outside_table;

@@ -236,6 +236,7 @@ untyped_4k_ref untyped_allocate_retyped(int type, int szb) {
         return NULL;
     }
     if (!cslot_retype(untyped_ptr_4k(ref), type, 0, szb, untyped_auxptr_4k(ref), 1)) {
+        untyped_free_4k(ref);
         ERRX_TRACEPOINT;
         return NULL;
     }

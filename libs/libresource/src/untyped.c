@@ -228,3 +228,30 @@ bool untyped_add_boot_memory(seL4_BootInfo *info) {
     }
     return true;
 }
+
+untyped_4k_ref untyped_allocate_retyped(int type, int szb) {
+    untyped_4k_ref ref = untyped_allocate_4k();
+    if (ref == NULL) {
+        ERRX_TRACEPOINT;
+        return NULL;
+    }
+    if (!cslot_retype(untyped_ptr_4k(ref), type, 0, szb, untyped_auxptr_4k(ref), 1)) {
+        ERRX_TRACEPOINT;
+        return NULL;
+    }
+    return ref;
+}
+
+bool untyped_allocate_retyped_multi(int count, int *types, int *szb, untyped_4k_ref **outs) {
+    for (int i = 0; i < count; i++) {
+        *outs[i] = untyped_allocate_retyped(types[i], szb[i]);
+        if (outs[i] == NULL) {
+            while (--i >= 0) {
+                untyped_free_4k(outs[i]);
+            }
+            ERRX_TRACEPOINT;
+            return false;
+        }
+    }
+    return true;
+}

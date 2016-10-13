@@ -27,4 +27,8 @@ seL4_CPtr untyped_auxptr_4k(untyped_4k_ref mem);
 
 void untyped_free_4k(untyped_4k_ref mem);
 
+untyped_4k_ref untyped_allocate_retyped(int type, int szb);
+
+bool untyped_allocate_retyped_multi(int count, int *types, int *szb, untyped_4k_ref **outs);
+
 #endif //LIB_RESOURCE_UNTYPED_MACRO_H

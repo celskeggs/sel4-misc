@@ -7,33 +7,6 @@
 
 #define IPC_ADDRESS (0x40000 - PAGE_SIZE)
 
-static untyped_4k_ref allocate_retyped(int type, int szb) {
-    untyped_4k_ref ref = untyped_allocate_4k();
-    if (ref == NULL) {
-        ERRX_TRACEPOINT;
-        return NULL;
-    }
-    if (!cslot_retype(untyped_ptr_4k(ref), type, 0, szb, untyped_auxptr_4k(ref), 1)) {
-        ERRX_TRACEPOINT;
-        return NULL;
-    }
-    return ref;
-}
-
-static bool allocate_retypeds(int count, int *types, int *szb, untyped_4k_ref **outs) {
-    for (int i = 0; i < count; i++) {
-        *outs[i] = allocate_retyped(types[i], szb[i]);
-        if (outs[i] == NULL) {
-            while (--i >= 0) {
-                untyped_free_4k(outs[i]);
-            }
-            ERRX_TRACEPOINT;
-            return false;
-        }
-    }
-    return true;
-}
-
 static bool tcb_configure(struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority, seL4_IA32_Page ipc_page) {
     int err = seL4_TCB_Configure(untyped_auxptr_4k(holder->tcb), fault_ep, priority, untyped_auxptr_4k(holder->cspace),
                                  seL4_CapData_Guard_new(0, 32 - ECAP_ROOT_BITS),
@@ -83,7 +56,7 @@ bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr
     int types[] = {seL4_IA32_PageDirectoryObject, seL4_TCBObject, seL4_CapTableObject};
     int bits[] = {0, 0, ECAP_ROOT_BITS};
     untyped_4k_ref *allocs[] = {&holder->page_directory, &holder->tcb, &holder->cspace};
-    if (!allocate_retypeds(alloc_count, types, bits, allocs)) {
+    if (!untyped_allocate_retyped_multi(alloc_count, types, bits, allocs)) {
         ERRX_TRACEPOINT;
         return false;
     }

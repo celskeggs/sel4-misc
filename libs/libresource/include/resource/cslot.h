@@ -28,6 +28,8 @@ bool cslot_mint_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to
 
 bool cslot_revoke(seL4_CPtr ptr);
 
+bool cslot_recycle(seL4_CPtr ptr);
+
 bool cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects);
 
 bool cslot_irqget(seL4_IRQControl ctrl, int irq, seL4_CPtr slot);

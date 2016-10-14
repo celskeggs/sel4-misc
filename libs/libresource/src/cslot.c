@@ -286,6 +286,20 @@ bool cslot_revoke(seL4_CPtr ptr) {
     }
 }
 
+bool cslot_recycle(seL4_CPtr ptr) {
+    if (ptr == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
+    int err = seL4_CNode_Recycle(c_root_cnode, ptr, 32);
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
+}
+
 bool cslot_retype(seL4_Untyped ut, int type, int offset, int size_bits, seL4_CPtr slot, int num_objects) {
     if (ut == seL4_CapNull || slot == seL4_CapNull) {
         ERRX_RAISE_GENERIC(GERR_NULL_VALUE);

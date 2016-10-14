@@ -94,6 +94,7 @@ seL4_CompileTimeAssert((sizeof(struct ipc_out_##ipcname) & 3) == 0);
                 handlers \
             default: \
                 DEBUG("specified label was not found in server's domain"); \
+                debug_printdec(label); \
                 response = IPC_ERROR_GERR_BASE + GERR_UNSUPPORTED_OPTION; \
                 break; \
             } \

@@ -8,7 +8,7 @@ struct elfexec {
     struct pagedir *pd;
     object_token cspace;
     object_token page_directory;
-    struct priv_cookie *priv_cookie;
+    uint32_t priv_cookie;
 };
 
 bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, uint8_t priority, seL4_CPtr io_ep);

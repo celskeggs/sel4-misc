@@ -2,6 +2,7 @@
 #include <elfloader/elfexec.h>
 #include <resource/cslot.h>
 #include <ipc/ipc.h>
+#include <elfloader/ctxexec.h>
 
 extern char *image_sandbox;
 extern char *image_sandbox_end;
@@ -50,6 +51,35 @@ bool ipc_handle_free(uint32_t sender, struct ipc_in_free *in, struct ipc_out_fre
     return true;
 }
 
+bool ipc_handle_proc_init(uint32_t sender, seL4_CPtr cspace, struct ipc_in_proc_init *in,
+                          struct ipc_out_proc_init *out) {
+    // TODO: use more secure cookies
+    out->cookie = exec_init(cspace, in->ipc_addr, in->pri, in->entry_vector);
+    if (out->cookie == 0) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
+    return true;
+}
+
+bool ipc_handle_proc_start(uint32_t sender, struct ipc_in_proc_start *in, struct ipc_out_proc_start *out) {
+    if (!exec_start(in->cookie)) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
+    return true;
+}
+
+bool ipc_handle_proc_stop(uint32_t sender, struct ipc_in_proc_stop *in, struct ipc_out_proc_stop *out) {
+    exec_stop(in->cookie);
+    return true;
+}
+
+bool ipc_handle_proc_destroy(uint32_t sender, struct ipc_in_proc_destroy *in, struct ipc_out_proc_destroy *out) {
+    exec_destroy(in->cookie);
+    return true;
+}
+
 bool main(void) {
     object_token token = object_alloc(seL4_EndpointObject);
     if (token == NULL) {
@@ -68,5 +98,9 @@ bool main(void) {
     }
     SERVER_LOOP(root_endpoint, true, SERVER_FOR(ping)
             SERVER_FOR(alloc)
-            SERVER_FOR(free));
+            SERVER_FOR(free)
+            SERVER_FOR(proc_init)
+            SERVER_FOR(proc_start)
+            SERVER_FOR(proc_stop)
+            SERVER_FOR(proc_destroy));
 }

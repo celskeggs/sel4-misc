@@ -72,11 +72,6 @@ static struct small_table *get_nonfull_small_table() {
     return cached_free;
 }
 
-static bool untyped_retype_to(untyped_4k_ref ref, int type, int offset, int size_bits, seL4_CPtr ptr) {
-    assert(ptr != seL4_CapNull);
-    return cslot_retype(untyped_ptr_4k(ref), type, offset, size_bits, ptr, 1);
-}
-
 static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
     struct small_table *nonfull_table = get_nonfull_small_table();
     if (nonfull_table == NULL) {
@@ -105,7 +100,7 @@ static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
     // we're ready to commit our changes, but hold off until we've actually retyped the memory
     uint32_t our_offset = nonfull_table->bitmap_free_index * 64uL + first_alloc_index;
     seL4_CPtr ptr = nonfull_table->chunk_base + our_offset;
-    if (!untyped_retype_to(nonfull_table->ref, type, 16 * our_offset, 0, ptr)) {
+    if (!cslot_retype(untyped_ptr_4k(nonfull_table->ref), type, 16 * our_offset, 0, ptr, 1)) {
         ERRX_TRACEPOINT;
         return seL4_CapNull;
     }

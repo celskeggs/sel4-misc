@@ -5,6 +5,7 @@
 struct errx_status errx = { .type = errx_type_none };
 
 extern void errx_type_none(void *p, char *out, size_t len) {
+    (void) p;
     strblit(out, len, "No error");
 }
 

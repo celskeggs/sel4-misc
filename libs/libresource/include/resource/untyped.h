@@ -7,9 +7,6 @@
 // if this fails, data structures may be corrupted
 bool untyped_add_boot_memory(seL4_BootInfo *info);
 
-// if this fails, data structures may be corrupted
-bool untyped_add_memory(seL4_Untyped ut, int size_bits);
-
 // necessary memory sizes:
 // 16 bytes (endpoint, notification)
 // 1 kib (TCB, small 64-slot cnodes)

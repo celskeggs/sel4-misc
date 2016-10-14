@@ -60,6 +60,8 @@ extern void errx_type_generic(void *errx_status, char *description_out, size_t d
     } \
 }
 #define ERRX_TRACEPOINT _ERRX_TRACEPOINT(__FILE__, __LINE__)
+#define ERRX_SAVE(name) struct errx_status __exs_ ## name = errx; ERRX_CONSUME;
+#define ERRX_LOAD(name) ERRX_START; errx = __exs_ ## name;
 
 extern void errx_concat_traceback(struct errx_status *, char *, size_t);
 

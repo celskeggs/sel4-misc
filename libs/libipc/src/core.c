@@ -4,6 +4,7 @@
 
 bool perform_ipc(seL4_CPtr ep, seL4_CPtr cap_in, seL4_CPtr cap_out, uint32_t tag, void *params, size_t param_len,
                  void *response, size_t response_len) {
+    ERRX_START;
     if (params == NULL || response == NULL || ep == seL4_CapNull) {
         ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
         return false;

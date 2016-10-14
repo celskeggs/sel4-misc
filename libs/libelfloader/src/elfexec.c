@@ -53,12 +53,12 @@ static bool cspace_configure(struct elfexec *holder, seL4_IA32_Page ipc_page, se
 bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority,
                   seL4_CPtr io_ep) {
     int alloc_count = 3;
-    int types[] = {seL4_IA32_PageDirectoryObject, seL4_TCBObject, seL4_CapTableObject};
+    uint32_t types[] = {seL4_IA32_PageDirectoryObject, seL4_TCBObject, seL4_CapTableObject};
     object_token *allocs[] = {&holder->page_directory, &holder->tcb, &holder->cspace};
 
     for (int i = 0; i < alloc_count; i++) {
         *allocs[i] = object_alloc(types[i]);
-        if (allocs[i] == NULL) {
+        if (*allocs[i] == NULL) {
             while (--i >= 0) {
                 object_free_token(allocs[i]);
             }

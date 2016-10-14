@@ -10,6 +10,7 @@ struct token {
 };
 
 object_token object_alloc(uint32_t object_type) {
+    ERRX_START;
     struct token *token = mem_fx_alloc(sizeof(struct token));
     if (token == NULL) {
         ERRX_TRACEPOINT;
@@ -23,6 +24,7 @@ object_token object_alloc(uint32_t object_type) {
     }
     struct ipc_out_alloc out;
     if (!ipc_alloc(ecap_IOEP, token->slot, &(struct ipc_in_alloc) {.object_type=object_type}, &out)) {
+        ERRX_TRACEPOINT;
         cslot_free(token->slot);
         mem_fx_free(token, sizeof(struct token));
         return NULL;

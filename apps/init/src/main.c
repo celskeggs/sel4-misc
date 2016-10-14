@@ -19,6 +19,7 @@ bool ipc_handle_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_alloc *i
         case seL4_CapTableObject:
         case seL4_IA32_4K:
         case seL4_IA32_PageTableObject:
+        case seL4_IA32_PageDirectoryObject:
         case seL4_EndpointObject:
         case seL4_NotificationObject: {
             object_token ref = object_alloc(in->object_type);

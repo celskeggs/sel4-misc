@@ -3,13 +3,13 @@
 
 #include <bedrock/bedrock.h>
 #include <bedrock/errx.h> // this module uses errx TODO: search for seL4_Error, seL4_NoError everywhere and find bad uses
-#include "untyped.h"
+#include "object.h"
 
 // NOTE: preserving the contents of this struct is only necessary if you plan to free it later!
 // certain bookkeeping metadata might make sense to be permanently allocated, though be careful about that.
 struct mem_page_cookie {
     void *unref_addr;
-    untyped_4k_ref ref;
+    object_token ref;
     seL4_CPtr mapped;
 };
 

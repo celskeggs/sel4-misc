@@ -2,13 +2,13 @@
 #define LIB_ELFLOADER_ELFEXEC_H
 
 #include <bedrock/types.h>
-#include <resource/untyped.h>
+#include <resource/object.h>
 
 struct elfexec {
     struct pagedir *pd;
-    untyped_4k_ref tcb;
-    untyped_4k_ref cspace;
-    untyped_4k_ref page_directory;
+    object_token tcb;
+    object_token cspace;
+    object_token page_directory;
 };
 
 bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority,

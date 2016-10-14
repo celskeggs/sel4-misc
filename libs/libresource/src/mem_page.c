@@ -1,9 +1,8 @@
 #include <resource/mem_page.h>
-#include <resource/cslot.h>
 
 extern seL4_CPtr current_vspace;
 
-static untyped_4k_ref mem_page_tables[PAGE_TABLE_COUNT];
+static object_token mem_page_tables[PAGE_TABLE_COUNT];
 static uint16_t mem_page_counts[PAGE_TABLE_COUNT];
 
 static inline uint16_t address_to_table_index(void *page_table) {
@@ -17,16 +16,15 @@ static bool map_table(void *page) {
     assert(mem_page_tables[tid] == NULL); // otherwise, someone unmapped us without permission
     assert(mem_page_counts[tid] == 0);
     seL4_CompileTimeAssert(seL4_PageTableBits == BITS_4KIB);
-    untyped_4k_ref ref = untyped_allocate_retyped(seL4_IA32_PageTableObject);
+    object_token ref = object_alloc(seL4_IA32_PageTableObject);
     if (ref == NULL) {
         ERRX_TRACEPOINT;
         return false;
     }
-    seL4_IA32_PageTable table = untyped_auxptr_4k(ref);
-    int err = seL4_IA32_PageTable_Map(table, current_vspace, tid * PAGE_TABLE_SIZE,
+    int err = seL4_IA32_PageTable_Map(object_cap(ref), current_vspace, tid * PAGE_TABLE_SIZE,
                                       seL4_IA32_Default_VMAttributes);
     if (err != seL4_NoError) {
-        untyped_free_4k(ref);
+        object_free_token(ref);
         ERRX_RAISE_SEL4(err);
         return false;
     }
@@ -38,9 +36,9 @@ static bool map_table(void *page) {
 static void unmap_table_tid(uint16_t tid) {
     assert(mem_page_tables[tid] != NULL);
     assert(mem_page_counts[tid] == 0);
-    untyped_4k_ref table = mem_page_tables[tid];
+    object_token table = mem_page_tables[tid];
     mem_page_tables[tid] = NULL;
-    untyped_free_4k(table);
+    object_free_token(table);
 }
 
 static bool ref_table(void *page) {
@@ -100,7 +98,7 @@ bool mem_page_shared_map(void *page, seL4_IA32_Page pent, struct mem_page_cookie
 void mem_page_free(struct mem_page_cookie *cookie) {
     assert(cookie != NULL);
     if (cookie->ref != NULL) {
-        untyped_free_4k(cookie->ref);
+        object_free_token(cookie->ref);
         cookie->ref = NULL;
     }
     if (cookie->mapped != seL4_CapNull) {
@@ -114,18 +112,18 @@ void mem_page_free(struct mem_page_cookie *cookie) {
 }
 
 bool mem_page_valid(struct mem_page_cookie *cookie) {
-    return cookie->ref != NULL || cookie->mapped != NULL;
+    return cookie->ref != NULL || cookie->mapped != seL4_CapNull;
 }
 
 bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
     seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB);
     assert(!mem_page_valid(cookie));
-    untyped_4k_ref ref = untyped_allocate_retyped(seL4_IA32_4K);
+    object_token ref = object_alloc(seL4_IA32_4K);
     if (ref == NULL) {
         ERRX_TRACEPOINT;
         return false;
     }
-    seL4_IA32_Page pent = untyped_auxptr_4k(ref);
+    seL4_IA32_Page pent = object_cap(ref);
     int err = seL4_IA32_Page_Map(pent, current_vspace, (uintptr_t) page, seL4_AllRights,
                                  seL4_IA32_Default_VMAttributes);
     bool outside_table;
@@ -134,21 +132,21 @@ bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
     } else {
         if (err == seL4_FailedLookup) {
             if (!map_table(page)) {
-                untyped_free_4k(ref);
+                object_free_token(ref);
                 ERRX_TRACEPOINT;
                 return false;
             }
             err = seL4_IA32_Page_Map(pent, current_vspace, (uintptr_t) page, seL4_AllRights,
                                      seL4_IA32_Default_VMAttributes);
             if (err != seL4_NoError) {
-                untyped_free_4k(ref);
+                object_free_token(ref);
                 unref_table(page);
                 ERRX_RAISE_SEL4(err);
                 return false;
             }
             outside_table = false;
         } else {
-            untyped_free_4k(ref);
+            object_free_token(ref);
             ERRX_RAISE_SEL4(err);
             return false;
         }

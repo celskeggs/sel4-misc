@@ -145,3 +145,19 @@ seL4_CPtr object_alloc_endpoint() {
 seL4_CPtr object_alloc_notification() {
     return small_table_alloc(seL4_NotificationObject);
 }
+
+object_token object_alloc(int object_type) {
+    if (object_type == seL4_EndpointObject || object_type == seL4_NotificationObject) {
+        ERRX_RAISE_GENERIC(GERR_UNSUPPORTED_OPTION);
+        return NULL;
+    }
+    return untyped_allocate_retyped(object_type);
+}
+
+seL4_CPtr object_cap(object_token token) {
+    return untyped_auxptr_4k(token);
+}
+
+void object_free_token(object_token token) {
+    untyped_free_4k(token);
+}

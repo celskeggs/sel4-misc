@@ -2,7 +2,7 @@
 #define LIB_ELFLOADER_ELFCONTEXT_H
 
 // TCB is not provided to subprocess.
-#include <resource/untyped.h>
+#include <bedrock/kmem.h>
 
 // TODO: get 4 (log 16, the cnode entry size) as a constant
 #define ECAP_ROOT_BITS (BITS_4KIB - 4)

@@ -5,6 +5,7 @@
 #include <resource/mem_fx.h>
 #include <ipc/ipc.h>
 #include <resource/object.h>
+#include <resource/untyped.h>
 
 extern char *image_sandbox;
 extern char *image_sandbox_end;
@@ -22,13 +23,13 @@ bool ipc_handle_init_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_ini
         case seL4_CapTableObject:
         case seL4_IA32_4K:
         case seL4_IA32_PageTableObject: {
-            untyped_4k_ref ref = untyped_allocate_retyped(in->object_type);
+            object_token ref = object_alloc(in->object_type);
             if (ref == NULL) {
                 ERRX_TRACEPOINT;
                 return false;
             }
             out->cookie = (uint32_t) ref; // TODO: something less insecure
-            return cslot_copy(untyped_auxptr_4k(ref), cap_out);
+            return cslot_copy(object_cap(ref), cap_out);
         }
         case seL4_EndpointObject:
         case seL4_NotificationObject: {

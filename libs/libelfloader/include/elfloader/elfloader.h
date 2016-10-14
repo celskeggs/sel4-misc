@@ -2,12 +2,12 @@
 #define LIB_ELFLOADER_ELFLOADER_H
 
 #include <bedrock/bedrock.h>
-#include <resource/untyped.h>
+#include <resource/object.h>
 #include <bedrock/errx.h> // this module uses errx
 
 struct pagetable {
-    untyped_4k_ref pt;
-    untyped_4k_ref pages[PAGE_COUNT_PER_TABLE];
+    object_token pt;
+    object_token pages[PAGE_COUNT_PER_TABLE];
     uint8_t page_accesses[PAGE_COUNT_PER_TABLE];
 };
 

@@ -26,17 +26,17 @@ static struct pagetable *get_pagetable(struct pagedir *pd, void *virtual_address
         ERRX_TRACEPOINT;
         return NULL;
     }
-    pt->pt = untyped_allocate_retyped(seL4_IA32_PageTableObject);
+    pt->pt = object_alloc(seL4_IA32_PageTableObject);
     if (pt->pt == NULL) {
         mem_fx_free(pt, sizeof(struct pagetable));
         ERRX_TRACEPOINT;
         return NULL;
     }
-    seL4_IA32_PageTable table = untyped_auxptr_4k(pt->pt);
+    seL4_IA32_PageTable table = object_cap(pt->pt);
     int err = seL4_IA32_PageTable_Map(table, pd->pd, page_table_id * PAGE_TABLE_SIZE,
                                       seL4_IA32_Default_VMAttributes);
     if (err != seL4_NoError) {
-        untyped_free_4k(pt->pt);
+        object_free_token(pt->pt);
         mem_fx_free(pt, sizeof(struct pagetable));
         ERRX_RAISE_SEL4(err);
         return NULL;
@@ -60,7 +60,7 @@ seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uin
     assert(page_offset < PAGE_COUNT_PER_TABLE);
     if (pt->pages[page_offset] == NULL) {
         // NEED TO ALLOCATE PAGE
-        untyped_4k_ref ut = untyped_allocate_retyped(seL4_IA32_4K);
+        object_token ut = object_alloc(seL4_IA32_4K);
         if (ut == NULL) {
             ERRX_TRACEPOINT;
             return seL4_CapNull;
@@ -68,10 +68,10 @@ seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uin
         seL4_CapRights rights = (seL4_CapRights) (((access_flags & ELF_MEM_WRITABLE) ? seL4_CanWrite : 0) |
                                                   ((access_flags & (ELF_MEM_READABLE | ELF_MEM_EXECUTABLE))
                                                    ? seL4_CanRead : 0));
-        int err = seL4_IA32_Page_Map(untyped_auxptr_4k(ut), pd->pd, (uintptr_t) virtual_address, rights,
+        int err = seL4_IA32_Page_Map(object_cap(ut), pd->pd, (uintptr_t) virtual_address, rights,
                                      seL4_IA32_Default_VMAttributes);
         if (err != seL4_NoError) {
-            untyped_free_4k(ut);
+            object_free_token(ut);
             ERRX_RAISE_SEL4(err);
             return seL4_CapNull;
         }
@@ -88,7 +88,7 @@ seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uin
             return seL4_CapNull;
         }
     }
-    return untyped_auxptr_4k(pt->pages[page_offset]);
+    return object_cap(pt->pages[page_offset]);
 }
 
 static bool remapper(void *cookie, void *virtual_address, uint8_t access_flags) {
@@ -165,11 +165,11 @@ void elfloader_unload(struct pagedir *pd) {
         if (pt != NULL) {
             for (uint32_t j = 0; j < PAGE_COUNT_PER_TABLE; j++) {
                 if (pt->pages[j] != NULL) {
-                    untyped_free_4k(pt->pages[j]);
+                    object_free_token(pt->pages[j]);
                     pt->pages[j] = NULL;
                 }
             }
-            untyped_free_4k(pt->pt);
+            object_free_token(pt->pt);
             mem_fx_free(pt, sizeof(struct pagetable));
         }
         pd->pts[i] = NULL;

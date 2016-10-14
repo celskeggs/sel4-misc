@@ -123,6 +123,10 @@ static bool cspace_configure(struct elfexec *holder, seL4_IA32_Page ipc_page, se
 }
 
 bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, uint8_t priority, seL4_CPtr io_ep) {
+    if (io_ep == seL4_CapNull || elf == NULL || holder == NULL) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
     holder->page_directory = object_alloc(seL4_IA32_PageDirectoryObject);
     if (holder->page_directory == NULL) {
         ERRX_TRACEPOINT;
@@ -134,7 +138,7 @@ bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, uint8_t p
         ERRX_TRACEPOINT;
         return false;
     }
-
+    holder->priv_cookie = 0;
     holder->pd = elfloader_load(elf, file_size, object_cap(holder->page_directory));
     if (holder->pd == NULL) {
         elfexec_destroy(holder);

@@ -55,10 +55,18 @@ bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr
     int alloc_count = 3;
     int types[] = {seL4_IA32_PageDirectoryObject, seL4_TCBObject, seL4_CapTableObject};
     untyped_4k_ref *allocs[] = {&holder->page_directory, &holder->tcb, &holder->cspace};
-    if (!untyped_allocate_retyped_multi(alloc_count, types, allocs)) {
-        ERRX_TRACEPOINT;
-        return false;
+
+    for (int i = 0; i < alloc_count; i++) {
+        *allocs[i] = untyped_allocate_retyped(types[i]);
+        if (allocs[i] == NULL) {
+            while (--i >= 0) {
+                untyped_free_4k(allocs[i]);
+            }
+            ERRX_TRACEPOINT;
+            return false;
+        }
     }
+
     holder->pd = elfloader_load(elf, file_size, untyped_auxptr_4k(holder->page_directory));
     if (holder->pd == NULL) {
         for (int i = 0; i < alloc_count; i++) {

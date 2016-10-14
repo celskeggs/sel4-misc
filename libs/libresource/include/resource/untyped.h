@@ -29,6 +29,4 @@ void untyped_free_4k(untyped_4k_ref mem);
 
 untyped_4k_ref untyped_allocate_retyped(int type);
 
-bool untyped_allocate_retyped_multi(int count, int *types, untyped_4k_ref **outs);
-
 #endif //LIB_RESOURCE_UNTYPED_MACRO_H

@@ -244,16 +244,3 @@ untyped_4k_ref untyped_allocate_retyped(int type) {
     return ref;
 }
 
-bool untyped_allocate_retyped_multi(int count, int *types, untyped_4k_ref **outs) {
-    for (int i = 0; i < count; i++) {
-        *outs[i] = untyped_allocate_retyped(types[i]);
-        if (outs[i] == NULL) {
-            while (--i >= 0) {
-                untyped_free_4k(outs[i]);
-            }
-            ERRX_TRACEPOINT;
-            return false;
-        }
-    }
-    return true;
-}

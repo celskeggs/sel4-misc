@@ -19,16 +19,27 @@ bool ipc_handle_init_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_ini
                            struct ipc_out_init_alloc *out) {
     (void) sender;
     switch (in->object_type) {
-        case seL4_CapTableObject: {
-            untyped_4k_ref ref = untyped_allocate_retyped(in->object_type, CNODE_4K_BITS);
+        case seL4_CapTableObject:
+        case seL4_IA32_4K:
+        case seL4_IA32_PageTableObject: {
+            untyped_4k_ref ref = untyped_allocate_retyped(in->object_type);
+            if (ref == NULL) {
+                ERRX_TRACEPOINT;
+                return false;
+            }
             out->cookie = (uint32_t) ref; // TODO: something less insecure
             return cslot_copy(untyped_auxptr_4k(ref), cap_out);
         }
-        case seL4_IA32_4K:
-        case seL4_IA32_PageTableObject: {
-            untyped_4k_ref ref = untyped_allocate_retyped(in->object_type, 0);
-            out->cookie = (uint32_t) ref; // TODO: something less insecure
-            return cslot_copy(untyped_auxptr_4k(ref), cap_out);
+        case seL4_EndpointObject:
+        case seL4_NotificationObject: {
+            seL4_CPtr ptr = in->object_type == seL4_EndpointObject ? object_alloc_endpoint()
+                                                                   : object_alloc_notification();
+            if (ptr == seL4_CapNull) {
+                ERRX_TRACEPOINT;
+                return false;
+            }
+            out->cookie = ptr;
+            return cslot_copy(ptr, cap_out);
         }
         default: {
             ERRX_RAISE_GENERIC(GERR_UNSUPPORTED_OPTION);

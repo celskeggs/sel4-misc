@@ -54,9 +54,8 @@ bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr
                   seL4_CPtr io_ep) {
     int alloc_count = 3;
     int types[] = {seL4_IA32_PageDirectoryObject, seL4_TCBObject, seL4_CapTableObject};
-    int bits[] = {0, 0, ECAP_ROOT_BITS};
     untyped_4k_ref *allocs[] = {&holder->page_directory, &holder->tcb, &holder->cspace};
-    if (!untyped_allocate_retyped_multi(alloc_count, types, bits, allocs)) {
+    if (!untyped_allocate_retyped_multi(alloc_count, types, allocs)) {
         ERRX_TRACEPOINT;
         return false;
     }

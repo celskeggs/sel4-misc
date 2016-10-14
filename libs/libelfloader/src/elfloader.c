@@ -26,7 +26,7 @@ static struct pagetable *get_pagetable(struct pagedir *pd, void *virtual_address
         ERRX_TRACEPOINT;
         return NULL;
     }
-    pt->pt = untyped_allocate_retyped(seL4_IA32_PageTableObject, 0);
+    pt->pt = untyped_allocate_retyped(seL4_IA32_PageTableObject);
     if (pt->pt == NULL) {
         mem_fx_free(pt, sizeof(struct pagetable));
         ERRX_TRACEPOINT;
@@ -60,7 +60,7 @@ seL4_IA32_Page elfloader_get_page(struct pagedir *pd, void *virtual_address, uin
     assert(page_offset < PAGE_COUNT_PER_TABLE);
     if (pt->pages[page_offset] == NULL) {
         // NEED TO ALLOCATE PAGE
-        untyped_4k_ref ut = untyped_allocate_retyped(seL4_IA32_4K, 0);
+        untyped_4k_ref ut = untyped_allocate_retyped(seL4_IA32_4K);
         if (ut == NULL) {
             ERRX_TRACEPOINT;
             return seL4_CapNull;

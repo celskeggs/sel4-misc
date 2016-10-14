@@ -17,7 +17,7 @@ static bool map_table(void *page) {
     assert(mem_page_tables[tid] == NULL); // otherwise, someone unmapped us without permission
     assert(mem_page_counts[tid] == 0);
     seL4_CompileTimeAssert(seL4_PageTableBits == BITS_4KIB);
-    untyped_4k_ref ref = untyped_allocate_retyped(seL4_IA32_PageTableObject, 0);
+    untyped_4k_ref ref = untyped_allocate_retyped(seL4_IA32_PageTableObject);
     if (ref == NULL) {
         ERRX_TRACEPOINT;
         return false;
@@ -120,7 +120,7 @@ bool mem_page_valid(struct mem_page_cookie *cookie) {
 bool mem_page_map(void *page, struct mem_page_cookie *cookie) {
     seL4_CompileTimeAssert(seL4_PageBits == BITS_4KIB);
     assert(!mem_page_valid(cookie));
-    untyped_4k_ref ref = untyped_allocate_retyped(seL4_IA32_4K, 0);
+    untyped_4k_ref ref = untyped_allocate_retyped(seL4_IA32_4K);
     if (ref == NULL) {
         ERRX_TRACEPOINT;
         return false;

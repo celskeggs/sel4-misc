@@ -1,6 +1,7 @@
 #include <resource/untyped.h>
 #include <resource/cslot.h>
 #include <resource/mem_fx.h>
+#include <resource/object.h>
 
 typedef void *untyped_4m_ref;
 
@@ -229,13 +230,13 @@ bool untyped_add_boot_memory(seL4_BootInfo *info) {
     return true;
 }
 
-untyped_4k_ref untyped_allocate_retyped(int type, int szb) {
+untyped_4k_ref untyped_allocate_retyped(int type) {
     untyped_4k_ref ref = untyped_allocate_4k();
     if (ref == NULL) {
         ERRX_TRACEPOINT;
         return NULL;
     }
-    if (!cslot_retype(untyped_ptr_4k(ref), type, 0, szb, untyped_auxptr_4k(ref), 1)) {
+    if (!cslot_retype(untyped_ptr_4k(ref), type, 0, type == seL4_CapTableObject ? CNODE_4K_BITS : 0, untyped_auxptr_4k(ref), 1)) {
         untyped_free_4k(ref);
         ERRX_TRACEPOINT;
         return NULL;
@@ -243,9 +244,9 @@ untyped_4k_ref untyped_allocate_retyped(int type, int szb) {
     return ref;
 }
 
-bool untyped_allocate_retyped_multi(int count, int *types, int *szb, untyped_4k_ref **outs) {
+bool untyped_allocate_retyped_multi(int count, int *types, untyped_4k_ref **outs) {
     for (int i = 0; i < count; i++) {
-        *outs[i] = untyped_allocate_retyped(types[i], szb[i]);
+        *outs[i] = untyped_allocate_retyped(types[i]);
         if (outs[i] == NULL) {
             while (--i >= 0) {
                 untyped_free_4k(outs[i]);

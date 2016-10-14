@@ -122,8 +122,7 @@ static bool cspace_configure(struct elfexec *holder, seL4_IA32_Page ipc_page, se
     return true;
 }
 
-bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority,
-                  seL4_CPtr io_ep) {
+bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, uint8_t priority, seL4_CPtr io_ep) {
     holder->page_directory = object_alloc(seL4_IA32_PageDirectoryObject);
     if (holder->page_directory == NULL) {
         ERRX_TRACEPOINT;

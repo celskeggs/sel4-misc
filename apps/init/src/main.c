@@ -58,7 +58,7 @@ bool main(void) {
     }
     seL4_CPtr root_endpoint = object_cap(token);
     struct elfexec context;
-    if (!elfexec_init(image_sandbox, image_sandbox_end - image_sandbox, &context, seL4_CapNull, 255, root_endpoint)) {
+    if (!elfexec_init(image_sandbox, image_sandbox_end - image_sandbox, &context, 255, root_endpoint)) {
         ERRX_TRACEPOINT;
         return false;
     }

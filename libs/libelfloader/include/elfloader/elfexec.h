@@ -11,8 +11,7 @@ struct elfexec {
     struct priv_cookie *priv_cookie;
 };
 
-bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, seL4_CPtr fault_ep, uint8_t priority,
-                  seL4_CPtr io_ep);
+bool elfexec_init(void *elf, size_t file_size, struct elfexec *holder, uint8_t priority, seL4_CPtr io_ep);
 
 void elfexec_destroy(struct elfexec *holder);
 

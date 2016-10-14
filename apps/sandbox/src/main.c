@@ -10,7 +10,7 @@ extern char *image_registrar_end;
 bool main(void) {
     debug_println("hello, sandbox world!");
     struct elfexec context;
-    if (!elfexec_init(image_registrar, image_registrar_end - image_registrar, &context, seL4_CapNull, 255, seL4_CapNull)) {
+    if (!elfexec_init(image_registrar, image_registrar_end - image_registrar, &context, 255, ecap_IOEP)) {
         ERRX_TRACEPOINT;
         return false;
     }

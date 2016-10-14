@@ -53,6 +53,7 @@ void *mem_fx_alloc(size_t size) {
 
 void mem_fx_free(void *data, size_t size) {
     assert(size <= MEM_FXLARGE_MAX_SIZE);
+    assert(data != NULL);
     if (size > FXCACHE_MAX) {
         mem_fxlarge_free(data, (uint8_t) ((size + PAGE_SIZE - 1) / PAGE_SIZE));
     } else {

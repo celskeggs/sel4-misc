@@ -27,7 +27,11 @@ bool ipc_handle_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_alloc *i
                 return false;
             }
             out->cookie = (uint32_t) ref; // TODO: something less insecure
-            return cslot_copy(object_cap(ref), cap_out);
+            if (!cslot_copy(object_cap(ref), cap_out)) {
+                ERRX_TRACEPOINT;
+                return false;
+            }
+            return true;
         }
         default: {
             ERRX_RAISE_GENERIC(GERR_UNSUPPORTED_OPTION);

@@ -53,6 +53,7 @@ bool ipc_handle_free(uint32_t sender, struct ipc_in_free *in, struct ipc_out_fre
 
 bool ipc_handle_proc_init(uint32_t sender, seL4_CPtr cspace, struct ipc_in_proc_init *in,
                           struct ipc_out_proc_init *out) {
+    (void) sender;
     // TODO: use more secure cookies
     out->cookie = exec_init(cspace, in->ipc_addr, in->pri, in->entry_vector);
     if (out->cookie == 0) {
@@ -63,6 +64,8 @@ bool ipc_handle_proc_init(uint32_t sender, seL4_CPtr cspace, struct ipc_in_proc_
 }
 
 bool ipc_handle_proc_start(uint32_t sender, struct ipc_in_proc_start *in, struct ipc_out_proc_start *out) {
+    (void) sender;
+    (void) out;
     if (!exec_start(in->cookie)) {
         ERRX_TRACEPOINT;
         return false;
@@ -71,11 +74,15 @@ bool ipc_handle_proc_start(uint32_t sender, struct ipc_in_proc_start *in, struct
 }
 
 bool ipc_handle_proc_stop(uint32_t sender, struct ipc_in_proc_stop *in, struct ipc_out_proc_stop *out) {
+    (void) sender;
+    (void) out;
     exec_stop(in->cookie);
     return true;
 }
 
 bool ipc_handle_proc_destroy(uint32_t sender, struct ipc_in_proc_destroy *in, struct ipc_out_proc_destroy *out) {
+    (void) sender;
+    (void) out;
     exec_destroy(in->cookie);
     return true;
 }

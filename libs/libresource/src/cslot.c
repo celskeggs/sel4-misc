@@ -59,8 +59,8 @@ bool cslot_setup(seL4_CNode root_cnode, seL4_CPtr low, seL4_CPtr high) {
 }
 
 void cslot_free(seL4_CPtr ptr) {
-    // TODO: empty the slot?
     assert(ptr != seL4_CapNull);
+    assert(cslot_delete(ptr));
     for (struct cslot_range *range = root_range; range != NULL; range = range->next) {
         // TODO: possible refuse to accept slots that are outside the originally-allocated area, for terminal cslot ranges?
         if (ptr >= range->low && ptr < range->low + BITMAP_ELEMENTS) {

@@ -224,6 +224,21 @@ bool cslot_copy_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to
     }
 }
 
+bool cslot_copy_in(seL4_CNode from_node, seL4_Word from, uint8_t from_depth, seL4_CPtr to) {
+    if (from_node == seL4_CapNull || to == seL4_CapNull) {
+        ERRX_RAISE_GENERIC(GERR_NULL_VALUE);
+        return false;
+    }
+    // note: if you get "Target slot invalid" (via debug message) and "FailedLookup" through interface, check bit depth.
+    int err = seL4_CNode_Copy(c_root_cnode, to, 32, from_node, from, from_depth, seL4_AllRights);
+    if (err == seL4_NoError) {
+        return true;
+    } else {
+        ERRX_RAISE_SEL4(err);
+        return false;
+    }
+}
+
 bool cslot_mutate(seL4_CPtr from, seL4_CPtr to, seL4_CapData_t cdata) {
     if (from == seL4_CapNull || to == seL4_CapNull) {
         ERRX_RAISE_GENERIC(GERR_NULL_VALUE);

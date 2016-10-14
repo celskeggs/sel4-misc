@@ -18,6 +18,8 @@ bool cslot_delete(seL4_CPtr ptr);
 
 bool cslot_copy(seL4_CPtr from, seL4_CPtr to);
 
+bool cslot_copy_in(seL4_CNode from_node, seL4_Word from, uint8_t from_depth, seL4_CPtr to);
+
 bool cslot_copy_out(seL4_CPtr from, seL4_CNode to_node, seL4_Word to, uint8_t to_depth);
 
 bool cslot_mutate(seL4_CPtr from, seL4_CPtr to, seL4_CapData_t cdata);

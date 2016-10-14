@@ -41,6 +41,7 @@ seL4_CPtr object_cap(object_token token_r) {
 }
 
 void object_free_token(object_token token_r) {
+    ERRX_SAVE();
     struct token *token = (struct token *) token_r;
     assert(token != NULL && token->slot != seL4_CapNull);
     cslot_free(token->slot);
@@ -50,4 +51,5 @@ void object_free_token(object_token token_r) {
     assert(token->cookie != 0);
     assert(ipc_free(ecap_IOEP, &(struct ipc_in_free) {.cookie = token->cookie}, &out));
     mem_fx_free(token, sizeof(struct token));
+    ERRX_LOAD();
 }

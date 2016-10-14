@@ -48,11 +48,12 @@ bool serial_init(seL4_IA32_IOPort iop, seL4_IRQControl ctrl, serial_cb cb) {
         ERRX_TRACEPOINT;
         return false;
     }
-    notification = object_alloc_notification();
-    if (notification == seL4_CapNull) {
+    object_token token = object_alloc(seL4_EndpointObject);
+    if (token == NULL) {
         ERRX_TRACEPOINT;
         return false;
     }
+    notification = object_cap(token);
     if (!cslot_irqget(ctrl, SERIAL_IO_IRQ, handler)) {
         ERRX_TRACEPOINT;
         return false;

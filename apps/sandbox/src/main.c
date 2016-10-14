@@ -17,8 +17,8 @@ bool main(void) {
         ERRX_TRACEPOINT;
         return false;
     }
-    struct ipc_out_init_alloc out4k;
-    if (!ipc_init_alloc(ecap_IOEP, cap_out, &(struct ipc_in_init_alloc) {.object_type = seL4_IA32_4K}, &out4k)) {
+    struct ipc_out_alloc out4k;
+    if (!ipc_alloc(ecap_IOEP, cap_out, &(struct ipc_in_alloc) {.object_type = seL4_IA32_4K}, &out4k)) {
         ERRX_TRACEPOINT;
         return false;
     }

@@ -2,10 +2,13 @@
 #include <resource/mem_vspace.h>
 #include <resource/cslot.h>
 #include <init/init.h>
+#include <resource/object.h>
 
 extern char __executable_start, _end;
 // referenced from mem_page.c
 seL4_CPtr current_vspace = ecap_PD;
+
+__FORCE_INCLUSION(object_alloc)
 
 void premain(seL4_IPCBuffer *buffer) {
     ERRX_START;

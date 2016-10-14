@@ -23,4 +23,6 @@ typedef seL4_Int8 bool;
 #define false 0
 #define true 1
 
+#define __FORCE_INCLUSION(x) void *__force_inclusion_ ## x = x;
+
 #endif //LIB_BEDROCK_TYPES_H

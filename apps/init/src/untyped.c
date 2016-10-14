@@ -1,4 +1,4 @@
-#include <resource/untyped.h>
+#include "untyped.h"
 #include <resource/cslot.h>
 #include <resource/mem_fx.h>
 #include <resource/object.h>

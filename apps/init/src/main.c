@@ -5,7 +5,7 @@
 #include <resource/mem_fx.h>
 #include <ipc/ipc.h>
 #include <resource/object.h>
-#include <resource/untyped.h>
+#include "untyped.h"
 
 extern char *image_sandbox;
 extern char *image_sandbox_end;
@@ -16,13 +16,15 @@ bool ipc_handle_ping(uint32_t sender, struct ipc_in_ping *in, struct ipc_out_pin
     return true;
 }
 
-bool ipc_handle_init_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_init_alloc *in,
-                           struct ipc_out_init_alloc *out) {
+bool ipc_handle_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_alloc *in,
+                      struct ipc_out_alloc *out) {
     (void) sender;
     switch (in->object_type) {
         case seL4_CapTableObject:
         case seL4_IA32_4K:
-        case seL4_IA32_PageTableObject: {
+        case seL4_IA32_PageTableObject:
+        case seL4_EndpointObject:
+        case seL4_NotificationObject: {
             object_token ref = object_alloc(in->object_type);
             if (ref == NULL) {
                 ERRX_TRACEPOINT;
@@ -30,17 +32,6 @@ bool ipc_handle_init_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_ini
             }
             out->cookie = (uint32_t) ref; // TODO: something less insecure
             return cslot_copy(object_cap(ref), cap_out);
-        }
-        case seL4_EndpointObject:
-        case seL4_NotificationObject: {
-            seL4_CPtr ptr = in->object_type == seL4_EndpointObject ? object_alloc_endpoint()
-                                                                   : object_alloc_notification();
-            if (ptr == seL4_CapNull) {
-                ERRX_TRACEPOINT;
-                return false;
-            }
-            out->cookie = ptr;
-            return cslot_copy(ptr, cap_out);
         }
         default: {
             ERRX_RAISE_GENERIC(GERR_UNSUPPORTED_OPTION);
@@ -50,19 +41,24 @@ bool ipc_handle_init_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_ini
 }
 
 bool main(void) {
-    seL4_CPtr root_endpoint = object_alloc_endpoint();
-    if (root_endpoint == seL4_CapNull) {
+    object_token token = object_alloc(seL4_EndpointObject);
+    if (token == NULL) {
+        ERRX_TRACEPOINT;
         return false;
     }
     struct elfexec context;
-    if (!elfexec_init(image_sandbox, image_sandbox_end - image_sandbox, &context, seL4_CapNull, 255, root_endpoint)) {
+    if (!elfexec_init(image_sandbox, image_sandbox_end - image_sandbox, &context, seL4_CapNull, 255,
+                      object_cap(token))) {
+        ERRX_TRACEPOINT;
         return false;
     }
     if (!elfexec_start(&context)) {
+        ERRX_TRACEPOINT;
         return false;
     }
+    seL4_CPtr root_endpoint = object_cap(token);
     SERVER_LOOP(root_endpoint, true, SERVER_FOR(ping)
-            SERVER_FOR(init_alloc));
+            SERVER_FOR(alloc));
 }
 
 extern char __executable_start;

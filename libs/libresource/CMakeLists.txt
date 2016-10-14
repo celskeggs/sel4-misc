@@ -12,7 +12,6 @@ add_library(libresource STATIC ${LIB_RESOURCE_HEADERS}
         src/mem_fxseq.c
         src/mem_page.c
         src/mem_vspace.c
-        src/object.c
-        src/untyped.c)
+        )
 target_include_directories(libresource PUBLIC ${LIB_RESOURCE_HEADERS})
 target_link_libraries(libresource libbedrock)

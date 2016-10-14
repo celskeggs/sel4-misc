@@ -1,7 +1,7 @@
-#include <resource/cslot.h>
-#include <resource/object.h>
-#include <resource/untyped.h>
 #include <resource/mem_fx.h>
+#include <resource/cslot.h>
+#include "small.h"
+#include "untyped.h"
 
 #define SMALL_TABLE_ALLOC_BITS 12
 #define SMALL_TABLE_BITS (SMALL_TABLE_ALLOC_BITS - 4) // 2^4 = 16, the size of one entry
@@ -72,7 +72,7 @@ static struct small_table *get_nonfull_small_table() {
     return cached_free;
 }
 
-static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
+seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
     struct small_table *nonfull_table = get_nonfull_small_table();
     if (nonfull_table == NULL) {
         ERRX_TRACEPOINT;
@@ -111,7 +111,7 @@ static seL4_CPtr small_table_alloc(int type) { // 16 byte objects only
     return ptr;
 }
 
-static void small_table_free(seL4_CPtr ptr) {
+void small_table_free(seL4_CPtr ptr) {
     assert(ptr != seL4_CapNull);
     struct small_table *ref = cached_free;
     while (ptr < ref->chunk_base || ptr >= ref->chunk_base + SMALL_TABLE_SIZE) {
@@ -136,28 +136,4 @@ static void small_table_free(seL4_CPtr ptr) {
     if (cached_free->free < ref->free) {
         cached_free = ref;
     }
-}
-
-seL4_CPtr object_alloc_endpoint() {
-    return small_table_alloc(seL4_EndpointObject);
-}
-
-seL4_CPtr object_alloc_notification() {
-    return small_table_alloc(seL4_NotificationObject);
-}
-
-object_token object_alloc(int object_type) {
-    if (object_type == seL4_EndpointObject || object_type == seL4_NotificationObject) {
-        ERRX_RAISE_GENERIC(GERR_UNSUPPORTED_OPTION);
-        return NULL;
-    }
-    return untyped_allocate_retyped(object_type);
-}
-
-seL4_CPtr object_cap(object_token token) {
-    return untyped_auxptr_4k(token);
-}
-
-void object_free_token(object_token token) {
-    untyped_free_4k(token);
 }

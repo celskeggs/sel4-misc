@@ -27,6 +27,8 @@ object_token object_alloc(uint32_t object_type) {
         mem_fx_free(token, sizeof(struct token));
         return NULL;
     }
+    token->cookie = out.cookie;
+    assert(token->cookie != 0);
     return token;
 }
 
@@ -43,6 +45,7 @@ void object_free_token(object_token token_r) {
     token->slot = seL4_CapNull;
     struct ipc_out_free out;
     // TODO: another solution besides asserting... maybe cache these...?
+    assert(token->cookie != 0);
     assert(ipc_free(ecap_IOEP, &(struct ipc_in_free) {.cookie = token->cookie}, &out));
     mem_fx_free(token, sizeof(struct token));
 }

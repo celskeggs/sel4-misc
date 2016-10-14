@@ -3,6 +3,7 @@
 #include <resource/cslot.h>
 #include <init/init.h>
 #include <resource/object.h>
+#include <resource/mem_fx.h>
 
 extern char __executable_start, _end;
 // referenced from mem_page.c
@@ -20,12 +21,10 @@ void premain(seL4_IPCBuffer *buffer) {
         fail("end");
     }
 
-    // TODO: an alternative to untyped that doesn't expect preavailability of memory
-
-    /*if (!mem_fx_init()) {
+    if (!mem_fx_init()) {
         ERRX_TRACEBACK;
         fail("end");
-    }*/
+    }
 
     ERRX_START;
 

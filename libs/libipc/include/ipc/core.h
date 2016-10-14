@@ -103,7 +103,6 @@ seL4_CompileTimeAssert((sizeof(struct ipc_out_##ipcname) & 3) == 0);
             } \
             if (response_caps) { \
                 seL4_SetCap(0, send_cptr); \
-                DEBUG("SEND"); \
             } \
             seL4_Reply(seL4_MessageInfo_new(response, 0, response_caps, response_len & ~3)); \
             assert(cslot_delete(send_cptr)); \

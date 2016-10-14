@@ -40,6 +40,13 @@ bool ipc_handle_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_alloc *i
     }
 }
 
+bool ipc_handle_free(uint32_t sender, struct ipc_in_free *in, struct ipc_out_free *out) {
+    assert(in->cookie != 0);
+    object_token tok = (object_token) in->cookie;
+    object_free_token(tok);
+    return true;
+}
+
 bool main(void) {
     object_token token = object_alloc(seL4_EndpointObject);
     if (token == NULL) {
@@ -58,7 +65,8 @@ bool main(void) {
     }
     seL4_CPtr root_endpoint = object_cap(token);
     SERVER_LOOP(root_endpoint, true, SERVER_FOR(ping)
-            SERVER_FOR(alloc));
+            SERVER_FOR(alloc)
+            SERVER_FOR(free));
 }
 
 extern char __executable_start;

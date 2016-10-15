@@ -8,7 +8,8 @@ enum ipc_tag {
     IPC_init_halt,
     IPC_alloc,
     IPC_free,
-    IPC_sandbox_ready,
+    IPC_sandbox_set_registrar,
+    IPC_sandbox_get_registrar,
     IPC_proc_init,
     IPC_proc_destroy,
     IPC_proc_start,
@@ -19,7 +20,8 @@ DECLARE_IPC(ping, int32_t value;, int32_t value_neg;)
 DECLARE_IPC(init_halt, ,)
 DECLARE_IPC_CO(alloc, uint32_t object_type;, uint32_t cookie;)
 DECLARE_IPC(free, uint32_t cookie;,)
-DECLARE_IPC_CI(sandbox_ready, ,) // takes cap to export
+DECLARE_IPC_CI(sandbox_set_registrar, ,) // takes cap to export
+DECLARE_IPC_CO(sandbox_get_registrar, ,) // provides registrar cap
 DECLARE_IPC_CI(proc_init, uint32_t ipc_addr;
         uint8_t pri;
         uint32_t entry_vector;,

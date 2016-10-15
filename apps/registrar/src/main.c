@@ -110,8 +110,8 @@ bool main(void) {
 
     root = node_new();
 
-    struct ipc_out_sandbox_ready out;
-    if (!ipc_sandbox_ready(ecap_IOEP, registrar_endpoint, &(struct ipc_in_sandbox_ready) {}, &out)) {
+    struct ipc_out_sandbox_set_registrar out;
+    if (!ipc_sandbox_set_registrar(ecap_IOEP, registrar_endpoint, &(struct ipc_in_sandbox_set_registrar) {}, &out)) {
         ERRX_TRACEPOINT;
         return false;
     }

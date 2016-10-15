@@ -8,6 +8,7 @@
 extern char *image_registrar;
 extern char *image_registrar_end;
 seL4_CPtr sandbox_ep = seL4_CapNull;
+seL4_CPtr registrar = seL4_CapNull;
 
 bool ipc_handle_ping(uint32_t sender, struct ipc_in_ping *in, struct ipc_out_ping *out) {
     (void) sender;
@@ -16,6 +17,7 @@ bool ipc_handle_ping(uint32_t sender, struct ipc_in_ping *in, struct ipc_out_pin
 }
 
 bool ipc_handle_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_alloc *in, struct ipc_out_alloc *out) {
+    (void) sender;
     if (!ipc_alloc(ecap_IOEP, cap_out, in, out)) {
         ERRX_TRACEPOINT;
         return false;
@@ -24,6 +26,7 @@ bool ipc_handle_alloc(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_alloc *i
 }
 
 bool ipc_handle_free(uint32_t sender, struct ipc_in_free *in, struct ipc_out_free *out) {
+    (void) sender;
     if (!ipc_free(ecap_IOEP, in, out)) {
         ERRX_TRACEPOINT;
         return false;
@@ -31,10 +34,37 @@ bool ipc_handle_free(uint32_t sender, struct ipc_in_free *in, struct ipc_out_fre
     return true;
 }
 
-bool ipc_handle_sandbox_ready(uint32_t sender, seL4_CPtr cap_in, struct ipc_in_sandbox_ready *in, struct ipc_out_sandbox_ready *out) {
-    debug_printdec(sender);
-    ERRX_RAISE_GENERIC(GERR_UNKNOWN_ERROR);
-    return false;
+bool ipc_handle_sandbox_set_registrar(uint32_t sender, seL4_CPtr cap_in, struct ipc_in_sandbox_set_registrar *in,
+                                      struct ipc_out_sandbox_set_registrar *out) {
+    (void) sender;
+    (void) in;
+    (void) out;
+    assert(registrar == seL4_CapNull);
+    registrar = cslot_alloc();
+    if (registrar == seL4_CapNull) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
+    if (!cslot_copy(cap_in, registrar)) {
+        cslot_delete(registrar);
+        registrar = seL4_CapNull;
+        ERRX_TRACEPOINT;
+        return false;
+    }
+    return true;
+}
+
+bool ipc_handle_sandbox_get_registrar(uint32_t sender, seL4_CPtr cap_out, struct ipc_in_sandbox_get_registrar *in,
+                                      struct ipc_out_sandbox_get_registrar *out) {
+    (void) sender;
+    (void) in;
+    (void) out;
+    assert(registrar != seL4_CapNull);
+    if (!cslot_copy(registrar, cap_out)) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
+    return true;
 }
 
 struct elfexec *launch_process(void *image, size_t length, uint8_t priority, uint32_t badge_number) {
@@ -55,7 +85,7 @@ struct elfexec *launch_process(void *image, size_t length, uint8_t priority, uin
         ERRX_TRACEPOINT;
         return NULL;
     }
-    if (!elfexec_init(image_registrar, image_registrar_end - image_registrar, context, priority, minted)) {
+    if (!elfexec_init(image, length, context, priority, minted)) {
         cslot_free(minted);
         mem_fx_free(context, sizeof(struct elfexec));
         ERRX_TRACEPOINT;
@@ -86,8 +116,13 @@ bool main(void) {
         ERRX_TRACEPOINT;
         return false;
     }
+    SERVER_LOOP(sandbox_ep, registrar == seL4_CapNull, SERVER_FOR(ping)
+            SERVER_FOR(alloc)
+            SERVER_FOR(free)
+            SERVER_FOR(sandbox_set_registrar))
+    DEBUG("switching to active registrar mode");
     SERVER_LOOP(sandbox_ep, true, SERVER_FOR(ping)
             SERVER_FOR(alloc)
             SERVER_FOR(free)
-            SERVER_FOR(sandbox_ready))
+            SERVER_FOR(sandbox_get_registrar))
 }

@@ -118,7 +118,8 @@ void small_table_free(seL4_CPtr ptr) {
         ref = ref->next;
         assert(ref != cached_free); // should never happen, unless it's not from us
     }
-    assert(cslot_delete(ptr)); // TODO: should this be a revoke?
+    assert(cslot_revoke(ptr)); // TODO: check that revoke works properly
+    assert(cslot_delete(ptr));
     uint32_t offset = ptr - ref->chunk_base;
     assert(offset < SMALL_TABLE_SIZE);
     uint8_t bitmap_offset = (uint8_t) (offset >> 6);

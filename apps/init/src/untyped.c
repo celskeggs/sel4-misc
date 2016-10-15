@@ -165,7 +165,7 @@ void untyped_free_4k(untyped_4k_ref mem) {
     n->next = avail_4ks;
     avail_4ks = n;
     assert(cslot_delete(n->aux));
-    assert(cslot_revoke(n->ut));
+    assert(cslot_revoke(n->ut)); // TODO: check that revoke works properly
 }
 
 // =================== MEMORY ADDITION ===================

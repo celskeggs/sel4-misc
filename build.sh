@@ -8,4 +8,4 @@ cd cbuild
 make install
 cd ..
 echo "Use Ctrl-A x to quit qemu"
-qemu-system-i386 -m 512 -nographic -kernel images/kernel.elf -initrd images/init
+qemu-system-i386 -m 128 -nographic -kernel images/kernel.elf -initrd images/init

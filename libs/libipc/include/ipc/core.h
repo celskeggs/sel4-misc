@@ -4,6 +4,7 @@
 #include <sel4/sel4.h>
 #include <bedrock/bedrock.h>
 #include <bedrock/errx.h>
+#include <resource/cslot.h>
 
 #define IPC_ERROR_GERR_BASE 256
 

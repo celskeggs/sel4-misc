@@ -101,6 +101,10 @@ bool main(void) {
     debug_println("registrar init...");
 
     object_token ep = object_alloc(seL4_EndpointObject);
+    if (ep == NULL) {
+        ERRX_TRACEPOINT;
+        return false;
+    }
     registrar_endpoint = object_cap(ep);
     (void) ep; // will never be freed.
 

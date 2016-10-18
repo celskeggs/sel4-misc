@@ -6,6 +6,8 @@
 #include <bedrock/errx.h>
 #include <resource/cslot.h>
 
+#define IPC_STR_LEN 128
+
 #define IPC_ERROR_GERR_BASE 256
 
 bool perform_ipc(seL4_CPtr ep, seL4_CPtr cap_in, seL4_CPtr cap_out, uint32_t tag, void *in, size_t in_len, void *out,
@@ -113,5 +115,11 @@ seL4_CompileTimeAssert((sizeof(struct ipc_out_##ipcname) & 3) == 0);
         cslot_free(recv_cptr); \
         cslot_free(send_cptr); \
     }
+
+const char *unpack_ipc_string(char ipc_str[IPC_STR_LEN]);
+
+void free_ipc_string(const char *str);
+
+bool pack_ipc_string(const char *str, char *ipc_str);
 
 #endif //LIB_IPC_CORE_H

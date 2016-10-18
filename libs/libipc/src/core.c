@@ -1,6 +1,7 @@
 #include <bedrock/bedrock.h>
 #include <ipc/core.h>
 #include <resource/cslot.h>
+#include <resource/mem_fx.h>
 
 bool perform_ipc(seL4_CPtr ep, seL4_CPtr cap_in, seL4_CPtr cap_out, uint32_t tag, void *params, size_t param_len,
                  void *response, size_t response_len) {
@@ -73,4 +74,35 @@ bool perform_ipc(seL4_CPtr ep, seL4_CPtr cap_in, seL4_CPtr cap_out, uint32_t tag
         cslot_free(cap_out_false);
     }
     return out;
+}
+
+const char *unpack_ipc_string(char ipc_str[IPC_STR_LEN]) {
+    size_t len = 0;
+    while (len < IPC_STR_LEN && ipc_str[len] != 0) {
+        len++;
+    }
+    char *out = mem_fx_alloc(len + 1); // okay to use this sort of allocation because there's an upper bound
+    if (out == NULL) {
+        ERRX_TRACEPOINT;
+        return NULL;
+    }
+    memcpy(out, ipc_str, len);
+    out[len] = 0;
+    return out;
+}
+
+void free_ipc_string(const char *str) {
+    assert(str != NULL);
+    mem_fx_free((void*) str, strlen(str) + 1);
+}
+
+bool pack_ipc_string(const char *str, char *ipc_str) {
+    size_t len = strlen(str);
+    if (len > IPC_STR_LEN) {
+        ERRX_RAISE_GENERIC(GERR_REQUEST_TOO_LARGE);
+        return false;
+    }
+    memcpy(ipc_str, str, len);
+    memset(ipc_str + len, 0, IPC_STR_LEN - len)
+    return true;
 }

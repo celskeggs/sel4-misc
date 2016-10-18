@@ -35,11 +35,11 @@ DECLARE_IPC_CI(proc_init, uint32_t ipc_addr;
 DECLARE_IPC(proc_destroy, uint32_t cookie;,)
 DECLARE_IPC(proc_start, uint32_t cookie;,)
 DECLARE_IPC(proc_stop, uint32_t cookie;,)
-DECLARE_IPC(registrar_iter_first, , bool any;
+DECLARE_IPC(registrar_iter_first, , bool any; uint8_t _padding[3];
         char name[IPC_STR_LEN];)
 DECLARE_IPC(registrar_iter_next, char name[IPC_STR_LEN];,
             char name[IPC_STR_LEN];)
-DECLARE_IPC_CO(registrar_derive, bool allow_write;
+DECLARE_IPC_CO(registrar_derive, bool allow_write; uint8_t _padding[3];
         char prefix[IPC_STR_LEN];,)
 DECLARE_IPC_CO(registrar_lookup, char name[IPC_STR_LEN];,)
 DECLARE_IPC_CI(registrar_register, char name[IPC_STR_LEN];,)

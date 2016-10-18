@@ -6,7 +6,7 @@
 #include <bedrock/errx.h>
 #include <resource/cslot.h>
 
-#define IPC_STR_LEN 128
+#define IPC_STR_LEN 64
 
 #define IPC_ERROR_GERR_BASE 256
 

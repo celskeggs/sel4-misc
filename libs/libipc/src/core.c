@@ -103,6 +103,6 @@ bool pack_ipc_string(const char *str, char *ipc_str) {
         return false;
     }
     memcpy(ipc_str, str, len);
-    memset(ipc_str + len, 0, IPC_STR_LEN - len)
+    memset(ipc_str + len, 0, IPC_STR_LEN - len);
     return true;
 }

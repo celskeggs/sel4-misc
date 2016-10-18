@@ -22,7 +22,7 @@ void *memcpy(void *dest, const void *src, size_t count) {
 
 // moves as much as possible of a string into a buffer, but makes sure the result is always property terminated.
 // returns a pointer to the generated null terminator
-extern char *strblit(char *dest, size_t buffer_len, const char *src) {
+char *strblit(char *dest, size_t buffer_len, const char *src) {
     assert(dest != NULL && src != NULL);
     size_t i;
     for (i = 0; i < buffer_len - 1 && src[i]; i++) {
@@ -35,7 +35,7 @@ extern char *strblit(char *dest, size_t buffer_len, const char *src) {
 
 // same as strblit, but takes buffer_len as a pointer and updates it.
 // used for successive blits.
-extern char *strblitadv(char *dest, size_t *buffer_len_p, const char *src) {
+char *strblitadv(char *dest, size_t *buffer_len_p, const char *src) {
     assert(dest != NULL && src != NULL);
     size_t buffer_len = *buffer_len_p;
     size_t i;
@@ -49,9 +49,41 @@ extern char *strblitadv(char *dest, size_t *buffer_len_p, const char *src) {
 }
 
 size_t strlen(const char *ptr) {
+    assert(ptr != NULL);
     const char *cur = ptr;
     while (*cur) {
         cur++;
     }
     return cur - ptr;
+}
+
+bool streq(const char *a, const char *b) {
+    assert(a != NULL && b != NULL);
+    while (*a == *b++) {
+        if (*a++ == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int strcmp(const char *a, const char *b) {
+    while (*a == *b) {
+        if (*a == 0) {
+            return 0;
+        }
+        a++;
+        b++;
+    }
+    return *a - *b;
+}
+
+bool strstart(const char *shorter, const char *longer) {
+    assert(shorter != NULL && longer != NULL);
+    while (*shorter) {
+        if (*shorter++ != *longer++) {
+            return false;
+        }
+    }
+    return true;
 }

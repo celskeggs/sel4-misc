@@ -14,6 +14,12 @@ enum ipc_tag {
     IPC_proc_destroy,
     IPC_proc_start,
     IPC_proc_stop,
+    IPC_registrar_iter_first,
+    IPC_registrar_iter_next,
+    IPC_registrar_derive,
+    IPC_registrar_lookup,
+    IPC_registrar_register,
+    IPC_registrar_remove,
 };
 
 DECLARE_IPC(ping, int32_t value;, int32_t value_neg;)
@@ -29,6 +35,14 @@ DECLARE_IPC_CI(proc_init, uint32_t ipc_addr;
 DECLARE_IPC(proc_destroy, uint32_t cookie;,)
 DECLARE_IPC(proc_start, uint32_t cookie;,)
 DECLARE_IPC(proc_stop, uint32_t cookie;,)
-
+DECLARE_IPC(registrar_iter_first, , bool any;
+        char name[IPC_STR_LEN];)
+DECLARE_IPC(registrar_iter_next, char name[IPC_STR_LEN];,
+            char name[IPC_STR_LEN];)
+DECLARE_IPC_CO(registrar_derive, bool allow_write;
+        char prefix[IPC_STR_LEN];,)
+DECLARE_IPC_CO(registrar_lookup, char name[IPC_STR_LEN];,)
+DECLARE_IPC_CI(registrar_register, char name[IPC_STR_LEN];,)
+DECLARE_IPC(registrar_remove, char name[IPC_STR_LEN];,)
 
 #endif //LIB_IPC_IPC_H

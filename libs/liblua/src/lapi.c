@@ -10,8 +10,8 @@
 #include "lprefix.h"
 
 
-#include <stdarg.h>
-#include <string.h>
+// #include <stdarg.h>
+#include <bedrock/buffer.h>
 
 #include "../include/lua.h"
 

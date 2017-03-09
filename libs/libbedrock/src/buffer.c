@@ -78,6 +78,18 @@ int strcmp(const char *a, const char *b) {
     return *a - *b;
 }
 
+int strncmp(const char *a, const char *b, size_t n) {
+    while (n && *a == *b) {
+        if (*a == 0) {
+            return 0;
+        }
+        a++;
+        b++;
+        n--;
+    }
+    return *a - *b;
+}
+
 bool strstart(const char *shorter, const char *longer) {
     assert(shorter != NULL && longer != NULL);
     while (*shorter) {
@@ -86,4 +98,62 @@ bool strstart(const char *shorter, const char *longer) {
         }
     }
     return true;
+}
+
+const char *strstr(const char *haystack, const char *needle) {
+    if (*needle == 0) {
+        return haystack;
+    }
+    while (*haystack) {
+        if (*needle == *haystack && strstart(needle, haystack)) {
+            return haystack;
+        }
+        haystack++;
+    }
+    return NULL;
+}
+
+const char *strchr(const char *s, int c) {
+    while (*s && *s != c) {
+        s++;
+    }
+    return *s == c ? s : NULL;
+}
+
+size_t strspn(const char *s, const char *accept) {
+    size_t count = 0;
+    while (strchr(accept, s[count])) {
+        count++;
+    }
+    return count;
+}
+
+bool isalpha(int c) {
+    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
+}
+
+bool isalnum(int c) {
+    return isdigit(c) || isalpha(c);
+}
+
+bool isdigit(int c) {
+    return '0' <= c && c <= '9';
+}
+
+bool isspace(int c) {
+    switch (c) {
+        case ' ':
+        case '\f':
+        case '\n':
+        case '\r':
+        case '\t':
+        case '\v':
+            return true;
+        default:
+            return false;
+    }
+}
+
+int toupper(int c) {
+    return isalpha(c) ? c ^ 32 : c;
 }

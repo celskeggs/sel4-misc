@@ -9,11 +9,7 @@
 
 #include "lprefix.h"
 
-
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <bedrock/buffer.h>
 
 #include "../include/lua.h"
 

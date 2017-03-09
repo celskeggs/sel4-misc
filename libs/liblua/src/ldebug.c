@@ -12,7 +12,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
-#include <string.h>
+#include <bedrock/buffer.h>
 
 #include "../include/lua.h"
 

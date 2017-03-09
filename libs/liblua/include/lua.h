@@ -10,7 +10,7 @@
 #define lua_h
 
 #include <stdarg.h>
-#include <stddef.h>
+#include <bedrock/types.h>
 
 
 #include "luaconf.h"

@@ -6,6 +6,12 @@ void debug_print_raw(const char *str) {
     }
 }
 
+void debug_print_raw_n(const char *str, size_t n) {
+    while (n--) {
+        seL4_DebugPutChar(*str++);
+    }
+}
+
 void debug_print(const char *str) {
     debug_print_raw("[DEBUG] ");
     debug_print_raw(str);

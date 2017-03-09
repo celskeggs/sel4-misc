@@ -14,11 +14,8 @@ add_library(liblua STATIC
         src/lfunc.c
         src/lgc.c
         src/linit.c
-        src/liolib.c
         src/llex.c
-        src/lmathlib.c
         src/lmem.c
-        src/loadlib.c
         src/lobject.c
         src/lopcodes.c
         src/loslib.c
@@ -35,5 +32,7 @@ add_library(liblua STATIC
         src/lutf8lib.c
         src/lvm.c
         src/lzio.c
+        src/llimits.h
         include)
 target_include_directories(liblua PUBLIC include)
+target_link_libraries(liblua libbedrock)

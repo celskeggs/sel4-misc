@@ -10,7 +10,7 @@
 
 
 #include <stddef.h>
-#include <stdio.h>
+#include <bedrock/debug.h>
 
 #include "lua.h"
 
@@ -167,30 +167,6 @@ LUALIB_API char *(luaL_buffinitsize) (lua_State *L, luaL_Buffer *B, size_t sz);
 
 
 
-/*
-** {======================================================
-** File handles for IO library
-** =======================================================
-*/
-
-/*
-** A file handle is a userdata with metatable 'LUA_FILEHANDLE' and
-** initial structure 'luaL_Stream' (it may contain other fields
-** after that initial structure).
-*/
-
-#define LUA_FILEHANDLE          "FILE*"
-
-
-typedef struct luaL_Stream {
-  FILE *f;  /* stream (NULL for incompletely created streams) */
-  lua_CFunction closef;  /* to close stream (NULL for closed streams) */
-} luaL_Stream;
-
-/* }====================================================== */
-
-
-
 /* compatibility with old module system */
 #if defined(LUA_COMPAT_MODULE)
 
@@ -212,18 +188,12 @@ LUALIB_API void (luaL_openlib) (lua_State *L, const char *libname,
 
 /* print a string */
 #if !defined(lua_writestring)
-#define lua_writestring(s,l)   fwrite((s), sizeof(char), (l), stdout)
+#define lua_writestring(s,l)   debug_print_raw_n((s), (l))
 #endif
 
 /* print a newline and flush the output */
 #if !defined(lua_writeline)
-#define lua_writeline()        (lua_writestring("\n", 1), fflush(stdout))
-#endif
-
-/* print an error message */
-#if !defined(lua_writestringerror)
-#define lua_writestringerror(s,p) \
-        (fprintf(stderr, (s), (p)), fflush(stderr))
+#define lua_writeline()        (lua_writestring("\n", 1))
 #endif
 
 /* }================================================================== */

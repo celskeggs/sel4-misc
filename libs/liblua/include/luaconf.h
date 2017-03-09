@@ -8,8 +8,7 @@
 #ifndef luaconf_h
 #define luaconf_h
 
-#include <limits.h>
-#include <stddef.h>
+#include <bedrock/types.h>
 
 
 /*
@@ -483,7 +482,7 @@
 
 #define l_mathop(op)		op
 
-#define lua_str2number(s,p)	strtod((s), (p))
+#define lua_str2number(s,p)	str10tod((s), (p))
 
 #else						/* }{ */
 
@@ -600,7 +599,7 @@
 ** leave 'lua_strx2number' undefined and Lua will provide its own
 ** implementation.
 */
-#if !defined(LUA_USE_C89)
+#if !defined(LUA_USE_C89) && false
 #define lua_strx2number(s,p)		lua_str2number(s,p)
 #endif
 
@@ -640,7 +639,6 @@
 
 #if !defined(LUA_USE_C89) && defined(__STDC_VERSION__) && \
     __STDC_VERSION__ >= 199901L
-#include <stdint.h>
 #if defined(INTPTR_MAX)  /* even in C99 this type is optional */
 #undef LUA_KCONTEXT
 #define LUA_KCONTEXT	intptr_t

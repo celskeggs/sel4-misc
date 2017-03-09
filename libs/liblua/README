@@ -11,3 +11,6 @@ sha256sum:  5113c06884f7de453ce57702abaac1d618307f33f6789fa870e87a59d772aca2
 Major changes to selkie version:
 1. Reorganized tree structure
 2. Converted to cmake build
+3. Patched to use selkie APIs
+4. Removed code that could not currently be supported.
+

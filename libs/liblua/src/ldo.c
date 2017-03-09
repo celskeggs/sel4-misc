@@ -7,12 +7,11 @@
 #define ldo_c
 #define LUA_CORE
 
+#include <bedrock/assert.h>
+#include <bedrock/buffer.h>
+#include <bedrock/deepcall.h>
+
 #include "lprefix.h"
-
-
-#include <setjmp.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "../include/lua.h"
 
@@ -56,22 +55,28 @@
 
 /* C++ exceptions */
 #define LUAI_THROW(L,c)		throw(c)
-#define LUAI_TRY(L,c,a) \
-	try { a } catch(...) { if ((c)->status == 0) (c)->status = -1; }
+#define LUAI_TRY(L,c,target,param) \
+	try { target(param); } catch(...) { if ((c)->status == 0) (c)->status = -1; }
 #define luai_jmpbuf		int  /* dummy variable */
+
+#elif true // TODO: only use this for selkie via #define, not hard-coded true
+
+#define LUAI_THROW(L,c)     deep_return((c)->b);
+#define LUAI_TRY(L,c,target,param)      deep_call(target, param, &(c)->b);
+#define luai_jmpbuf     void *
 
 #elif defined(LUA_USE_POSIX)				/* }{ */
 
 /* in POSIX, try _longjmp/_setjmp (more efficient) */
 #define LUAI_THROW(L,c)		_longjmp((c)->b, 1)
-#define LUAI_TRY(L,c,a)		if (_setjmp((c)->b) == 0) { a }
+#define LUAI_TRY(L,c,target,param)		if (_setjmp((c)->b) == 0) { target(param); }
 #define luai_jmpbuf		jmp_buf
 
 #else							/* }{ */
 
 /* ISO C handling with long jumps */
 #define LUAI_THROW(L,c)		longjmp((c)->b, 1)
-#define LUAI_TRY(L,c,a)		if (setjmp((c)->b) == 0) { a }
+#define LUAI_TRY(L,c,target,param)		if (setjmp((c)->b) == 0) { target(param); }
 #define luai_jmpbuf		jmp_buf
 
 #endif							/* } */
@@ -127,11 +132,21 @@ l_noret luaD_throw (lua_State *L, int errcode) {
         lua_unlock(L);
         g->panic(L);  /* call panic function (last chance to jump out) */
       }
-      abort();
+      fail("lua panic abort");
     }
   }
 }
 
+struct pfunc_disp_param {
+    Pfunc f;
+    lua_State *L;
+    void *ud;
+};
+
+static void run_pfunc_disp(void *param) {
+    struct pfunc_disp_param *pdp = (struct pfunc_disp_param *) param;
+    (*pdp->f)(pdp->L, pdp->ud);
+}
 
 int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
   unsigned short oldnCcalls = L->nCcalls;
@@ -139,9 +154,8 @@ int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
   lj.status = LUA_OK;
   lj.previous = L->errorJmp;  /* chain new error handler */
   L->errorJmp = &lj;
-  LUAI_TRY(L, &lj,
-    (*f)(L, ud);
-  );
+  struct pfunc_disp_param pdp = { .f = f, .L = L, .ud = ud };
+  LUAI_TRY(L, &lj, run_pfunc_disp, &pdp);
   L->errorJmp = lj.previous;  /* restore old error handler */
   L->nCcalls = oldnCcalls;
   return lj.status;

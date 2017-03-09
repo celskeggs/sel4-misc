@@ -8,8 +8,8 @@
 #define llimits_h
 
 
-#include <limits.h>
-#include <stddef.h>
+#include <bedrock/types.h>
+#include <bedrock/math.h>
 
 
 #include "../include/lua.h"

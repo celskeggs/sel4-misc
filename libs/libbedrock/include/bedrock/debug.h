@@ -8,6 +8,8 @@
 
 extern void debug_print_raw(const char *str);
 
+extern void debug_print_raw_n(const char *str, size_t n);
+
 extern void debug_print(const char *str);
 
 extern void debug_println(const char *str);
